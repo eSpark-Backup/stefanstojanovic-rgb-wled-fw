@@ -1,13 +1,14 @@
 #include "Parsing.h"
 #include <list>
 
-int pin = 0;
-uint16_t length = 0;
-auto skip = 0;
-int brightness = 0;
-uint8_t combination = 0;
-const char* getType;
-Types compare[] = {
+typedef struct{
+  int pin = 0;
+  uint16_t length = 0;
+  int skip = 0;
+  int brightness = 0;
+}parseFileParameters;
+
+ledStripMap stripTypes[] = {
   { "RGB", NEO_RGB },
   { "RBG", NEO_RBG },
   { "GRB", NEO_GRB },
@@ -40,11 +41,31 @@ Types compare[] = {
   { "BGRW", NEO_BGRW }
 };
 
+uint8_t typeCheck(uint8_t *combination , struct ledStripMap (&stripTypes)[30] , const char *getType)
+{ 
+  ledStripMap ifNotGetAnyValue;
+  for (ledStripMap typ : stripTypes) 
+  {
+    if (strcmp(getType, typ.type) == 0) 
+    {
+      *combination = typ.value;
+      return *combination;
+    }
+  }
+  if(!(*combination))
+  {
+    Serial.println("else of the function:" );
+    ifNotGetAnyValue.type = "RGB";
+    *combination = ifNotGetAnyValue.value;
+    return *combination;
+  }
+}
 
-void parseSection(String sectionName, File configFile, std::list<adaFruitPack*>& stripsList) 
+void parseSection(String sectionName, File configFile, std::list<ledStripInfo*>& stripList) 
 {
   while (configFile.available()) 
-  {
+  { 
+    parseFileParameters parseCurrent;
     String line = configFile.readStringUntil('\n');
     line.trim();
 
@@ -61,77 +82,47 @@ void parseSection(String sectionName, File configFile, std::list<adaFruitPack*>&
 
     } 
     else if (line.startsWith("P:")) 
-    {
-      pin = line.substring(line.indexOf("P:") + 2, line.indexOf(" T:")).toInt();
+    { 
+      parseCurrent.pin = line.substring(line.indexOf("P:") + 2, line.indexOf(" T:")).toInt();
       String gettingType = line.substring(line.indexOf("T:") + 2, line.indexOf(" L:"));
-      length = line.substring(line.indexOf("L:") + 2, line.indexOf(" S:")).toInt();
-      skip = line.substring(line.indexOf("S:") + 2, line.indexOf(" B:")).toInt();
-      brightness = line.substring(line.indexOf("B:") + 2).toInt();
-      getType = gettingType.c_str();  //Converting string to const char* in order to use strcmp() function
-      for (Types typ : compare) 
-      {
-        if (strcmp(getType, typ.typeStr) == 0) 
-        {
-          combination = typ.type;
-        }
-      }
-      
+      parseCurrent.length = line.substring(line.indexOf("L:") + 2, line.indexOf(" S:")).toInt();
+      parseCurrent.skip = line.substring(line.indexOf("S:") + 2, line.indexOf(" B:")).toInt();
+      parseCurrent.brightness = line.substring(line.indexOf("B:") + 2).toInt();
+      const char* getType = gettingType.c_str();  //Converting string to const char* in order to use strcmp() function
+      uint8_t combination;
+
       if (sectionName == "strips") 
-      {
-        adaFruitPack* ada = new adaFruitPack;
-        ada->strips = new Adafruit_NeoPixel(length, pin, combination + NEO_KHZ800);
-        ada->len = length;
-        ada->gettingTypeString = getType;
-        ada->strips->begin();  // Initialize the strip
-        ada->strips->setBrightness(brightness);
-        stripsList.push_back(ada);
+      { 
+        typeCheck(&combination , stripTypes , getType);
+        ledStripInfo* ada = new ledStripInfo;
+        ada->strip = new Adafruit_NeoPixel(parseCurrent.length, parseCurrent.pin, combination + NEO_KHZ800);
+        ada->len = parseCurrent.length;
+        ada->type = getType;
+        ada->strip->begin();  // Initialize the strip
+        ada->strip->setBrightness(parseCurrent.brightness);
+        stripList.push_back(ada);
       } 
       else if (sectionName == "input") 
-      {
-        pinMode(pin, INPUT_PULLUP);
+      { 
+        pinMode(parseCurrent.pin, INPUT_PULLUP);
       }
       else if (sectionName == "output") 
       {
-       
         String statePinStr = line.substring(line.indexOf("S:") + 2);
         if(statePinStr[0] == 'H')
         {
-          
-           pinMode(pin, OUTPUT);
-           digitalWrite(pin,HIGH);
+          pinMode(parseCurrent.pin, OUTPUT);
+          digitalWrite(parseCurrent.pin,HIGH);
         }
         else if (statePinStr[0] == 'L')
         {  
-           pinMode(pin, OUTPUT);
-           digitalWrite(pin,LOW);
+          pinMode(parseCurrent.pin, OUTPUT);
+          digitalWrite(parseCurrent.pin,LOW);
         }
-        
-
       }
-      // Serial.print(sectionName + " - Pin: ");
-      // Serial.print(pin);
-      // Serial.print(", Type: ");
-      // Serial.print(getType);
-      // Serial.print(", Length: ");
-      // Serial.print(length);
-      // Serial.print(", Skip: ");
-      // Serial.print(skip);
-      // Serial.print(", Brightness: ");
-      // Serial.println(brightness);
     }
   }
 }
 
-// uint8_t typeCheck(uint8_t combination , struct Types compare[])
-// {
-//   for (Types typ : compare) 
-//   {
-//     if (strcmp(getType, typ.typeStr) == 0) 
-//     {
-//       combination = typ.type;
-//       return combination;
-//     }
-//   }
-// }
 
 

@@ -4,20 +4,16 @@
 #include <Adafruit_NeoPixel.h>
 #include <list>
 
-struct Types {
-  const char *typeStr;
-  uint8_t type;
+struct ledStripMap {
+  const char *type;
+  uint8_t value;
 };
+
 typedef struct {
-  Adafruit_NeoPixel *strips;
+  Adafruit_NeoPixel *strip;
   uint16_t len;
-  const char *gettingTypeString;
-} adaFruitPack;
-const char* isCompared(const char* getType);
-void parseSection(String sectionName, File configFile, std::list<adaFruitPack *> &stripsList);
-// void setPixelColorFromCode(int index, char code, ColorConfig *colorArray, adaFruitPack *strip, String line);
-// bool parseConfigLine(String line, char& symbol, uint8_t& r, uint8_t& g, uint8_t& b, uint8_t& w);
-// void parseAndPrintConfig(const char* filePath);
-// void parseAndUpdateStrip(String line);
-// void playAnimation(String filename);
-// void setPixelColorFromCode(int index, char code, ColorConfig *colorArray);
+  const char *type;
+} ledStripInfo;
+
+void parseSection(String sectionName, File configFile, std::list<ledStripInfo *> &stripList);
+uint8_t typeCheck(uint8_t *combination, struct ledStripMap (&stripTypes)[30], const char *getType);

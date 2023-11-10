@@ -3,36 +3,50 @@
 #include <Adafruit_NeoPixel.h>
 #include <list>
 #include "Parsing.h"
+#include "StripColors.hpp"
 
 int NUM_LEDS = 0;
-extern const char* getType;
-int tracker = 0;
-std::list<adaFruitPack *> stripsList;
+std::list<ledStripInfo *> stripList;
 File file;
-Adafruit_NeoPixel input;
-Adafruit_NeoPixel output;
-
-// Define a struct to store the parsed configuration
-struct ColorConfig {
-  char symbol;
-  uint8_t r, g, b, w;
+// int lineCounter = 0;
+struct ColorInstance{ 
+  ColorConfig *colorArray;
+  int colorCount = 0;
 };
-int maxColors = 0;
-struct ColorConfig *colorArray = new ColorConfig[maxColors];
-int colorCount = 0;
-ColorConfig config;
+
+
+ColorInstance colorInstance;
+
 String currentAnimationFile = "/startup.ani";
 String nextAnimationFile = "";
-std::list<adaFruitPack *>::iterator it;
+std::list<ledStripInfo *>::iterator it;
 
-void storeColorConfig(ColorConfig config) 
-{
-  colorArray[colorCount].symbol = config.symbol;
-  colorArray[colorCount].r = config.r;
-  colorArray[colorCount].g = config.g;
-  colorArray[colorCount].b = config.b;
-  colorArray[colorCount].w = config.w;
+void storeColorConfig(ColorInstance colorInstance) 
+{ 
+  colorInstance.colorArray[colorInstance.colorCount].symbol = colorInstance.colorArray->symbol;
+  colorInstance.colorArray[colorInstance.colorCount].r = colorInstance.colorArray->r;
+  colorInstance.colorArray[colorInstance.colorCount].g = colorInstance.colorArray->g;
+  colorInstance.colorArray[colorInstance.colorCount].b = colorInstance.colorArray->b;
+  colorInstance.colorArray[colorInstance.colorCount].w = colorInstance.colorArray->w;
 }
+
+
+int lineCounter(const char *filePath)  
+{  
+  File configFile = SPIFFS.open(filePath, "r");
+  int lineCounter = 0;
+  while (configFile.available())
+  {
+    String line = configFile.readStringUntil('\n');
+    if (line.length() > 0) 
+    {
+    lineCounter++;
+    }
+  }
+  configFile.close();
+  return lineCounter;
+} 
+
 
 void parseAndPrintConfig(const char *filePath) 
 {
@@ -52,25 +66,16 @@ void parseAndPrintConfig(const char *filePath)
 
   // Parse and print the configuration
   while (configFile.available()) 
-  {
+  { 
     String line = configFile.readStringUntil('\n');
+    
     if (line.length() > 0) 
     {
-      if (parseConfigLine(line, config.symbol, config.r, config.g, config.b , config.w)) 
+      if (parseConfigLine(line, colorInstance.colorArray->symbol, colorInstance.colorArray->r, colorInstance.colorArray->g, colorInstance.colorArray->b , colorInstance.colorArray->w)) 
       {
-        storeColorConfig(config);
-        // Serial.print("Symbol: ");
-        // Serial.print(config.symbol);
-        // Serial.print(", RGBW: ");
-        // Serial.print(config.r);
-        // Serial.print(", ");
-        // Serial.print(config.g);
-        // Serial.print(", ");
-        // Serial.print(config.b);
-        // Serial.print(", ");
-        // Serial.println(config.w);
+        storeColorConfig(colorInstance);
         delay(100);
-        colorCount++;
+        colorInstance.colorCount++;
       }
     }
   }
@@ -81,17 +86,18 @@ void parseAndPrintConfig(const char *filePath)
 void setup() 
   {
     Serial.begin(115200);
-    parseAndPrintConfig("/colortable.conf");
+    lineCounter("/colortable1.conf");
+    parseAndPrintConfig("/colortable1.conf");
     if (SPIFFS.begin()) 
     {
       File configFile = SPIFFS.open("/config.conf", "r");
 
       if (configFile) 
       {
-        parseSection("", configFile, stripsList);  // Pass an empty section name to stat
-        // Serial.println((uint32_t)stripsList.front());
+        parseSection("", configFile, stripList);  // Pass an empty section name to stat
+        // Serial.println((uint32_t)stripList.front());
 
-        // strip = stripsList.front();
+        // strip = stripList.front();
       } 
       else 
       {
@@ -138,8 +144,8 @@ void playAnimation(String filename)
     if (line.startsWith("L:")) 
     {
       NUM_LEDS = line.substring(2).toInt();
-      (*it)->strips->updateLength(NUM_LEDS);
-      (*it)->strips->show();  // Update the strip length and clear it
+      (*it)->strip->updateLength(NUM_LEDS);
+      (*it)->strip->show();  // Update the strip length and clear it
       continue;
     }
 
@@ -166,21 +172,21 @@ void playAnimation(String filename)
 
       int dividerPos = line.indexOf('|');
       int customDuration = line.substring(0, dividerPos).toInt();
-      parseAndUpdateStrip(line.substring(dividerPos + 1), stripsList);
+      parseAndUpdateStrip(line.substring(dividerPos + 1), stripList);
       delay(customDuration);
     } 
     else 
     {
-      parseAndUpdateStrip(line, stripsList);
+      parseAndUpdateStrip(line, stripList);
       delay(100);
     }
   }
   file.close();
 }
 
-void parseAndUpdateStrip(String line, std::list<adaFruitPack *> &stripsList) 
+void parseAndUpdateStrip(String line, std::list<ledStripInfo *> &stripList) 
 {
-  it = stripsList.begin();
+  it = stripList.begin();
   int ledIdx = 0;
 
   for (int i = 0; i < line.length(); i++) 
@@ -191,7 +197,7 @@ void parseAndUpdateStrip(String line, std::list<adaFruitPack *> &stripsList)
       if (ledIdx >= (*it)->len) 
       {
         it++;
-        if (it == stripsList.end()) 
+        if (it == stripList.end()) 
         {
           goto showStrip;
         }
@@ -216,7 +222,7 @@ void parseAndUpdateStrip(String line, std::list<adaFruitPack *> &stripsList)
           if (ledIdx >= (*it)->len) 
           {
             it++;
-            if (it == stripsList.end()) 
+            if (it == stripList.end()) 
             {
               goto showStrip;
             }
@@ -230,7 +236,7 @@ void parseAndUpdateStrip(String line, std::list<adaFruitPack *> &stripsList)
       } 
       else 
       {
-        for (; it != stripsList.end(); it++) 
+        for (; it != stripList.end(); it++) 
         {
           for (int j = ledIdx; j < ((*it)->len); j++) 
           {
@@ -248,27 +254,27 @@ void parseAndUpdateStrip(String line, std::list<adaFruitPack *> &stripsList)
       {
         it++;
         ledIdx = 0;
-        if (it == stripsList.end()) 
+        if (it == stripList.end()) 
         {
           break;
         }
       }
       setPixelColorFromCode(ledIdx, line[i], colorArray, *it, line);
-      (*it)->strips->show();
+      (*it)->strip->show();
       ledIdx++;
     }
   }
 
 showStrip:
   showingStrips(*it);
-  it = stripsList.begin();
+  it = stripList.begin();
 }
 
-void showingStrips(adaFruitPack *strip)
+void showingStrips(ledStripInfo *strip)
 {
-  for (it = stripsList.begin(); it != stripsList.end(); it++) 
+  for (it = stripList.begin(); it != stripList.end(); it++) 
   {
-    (*it)->strips->show();
+    (*it)->strip->show();
   }
 }
 
@@ -279,7 +285,7 @@ bool parseConfigLine(String line, char &symbol, uint8_t &r, uint8_t &g, uint8_t 
   return (count);
 }
 
-void ifWhite(ColorConfig *colorArray, int i)
+void ifWhite(ColorInstance *colorInstance, int i)
 {
   if(colorArray[i].r == 0 && colorArray[i].g == 0 && colorArray[i].b == 0 && colorArray[i].w)
   {
@@ -289,14 +295,14 @@ void ifWhite(ColorConfig *colorArray, int i)
   }
 }
 
-void setPixelColorFromCode(int index, char code, ColorConfig *colorArray, adaFruitPack *strip, String line) 
+void setPixelColorFromCode(int index, char code, ColorInstance *colorInstance, ledStripInfo *strip, String line) 
 {
-  for (int i = 0; i < colorCount; i++) 
+  for (int i = 0; i < colorInstance.colorCount; i++) 
   {
-    if (colorArray[i].symbol == code) 
+    if (colorInstance.colorArray->symbol[i] == code) 
     {  
-      ifWhite(colorArray, i);
-      strip->strips->setPixelColor(index, strip->strips->Color(colorArray[i].r, colorArray[i].g, colorArray[i].b, colorArray[i].w));
+      ifWhite(colorInstance.colorArray, i);
+      strip->strip->setPixelColor(index, strip->strip->Color(colorInstance.colorArray[i].r, colorInstance.colorArray[i].g, colorInstance.colorArray[i].b, colorInstance.colorArray[i].w));
     }
   }
 }
