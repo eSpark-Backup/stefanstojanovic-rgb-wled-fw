@@ -8,7 +8,7 @@
 int NUM_LEDS = 0;
 std::list<ledStripInfo *> stripList;
 File file;
-// int lineCounter = 0;
+int lineCounter = 0;
 struct ColorInstance{ 
   ColorConfig *colorArray;
   int colorCount = 0;
@@ -16,47 +16,51 @@ struct ColorInstance{
 
 
 ColorInstance colorInstance;
+ColorConfig config;
 
 String currentAnimationFile = "/startup.ani";
 String nextAnimationFile = "";
 std::list<ledStripInfo *>::iterator it;
 
-void storeColorConfig(ColorInstance colorInstance) 
+void storeColorConfig(struct ColorInstance &colorInst , ColorConfig config) 
 { 
-  colorInstance.colorArray[colorInstance.colorCount].symbol = colorInstance.colorArray->symbol;
-  colorInstance.colorArray[colorInstance.colorCount].r = colorInstance.colorArray->r;
-  colorInstance.colorArray[colorInstance.colorCount].g = colorInstance.colorArray->g;
-  colorInstance.colorArray[colorInstance.colorCount].b = colorInstance.colorArray->b;
-  colorInstance.colorArray[colorInstance.colorCount].w = colorInstance.colorArray->w;
+  colorInst.colorArray[colorInst.colorCount].symbol = config.symbol;
+  colorInst.colorArray[colorInst.colorCount].r = config.r;
+  colorInst.colorArray[colorInst.colorCount].g = config.g;
+  colorInst.colorArray[colorInst.colorCount].b = config.b;
+  colorInst.colorArray[colorInst.colorCount].w = config.w;
 }
 
-
-int lineCounter(const char *filePath)  
+int LineCounter(const char *filePath , int &lineCounter)  
 {  
   File configFile = SPIFFS.open(filePath, "r");
-  int lineCounter = 0;
   while (configFile.available())
   {
     String line = configFile.readStringUntil('\n');
     if (line.length() > 0) 
     {
-    lineCounter++;
+     if(parseConfigLine(line, config.symbol, config.r, config.g, config.b , config.w))
+      {
+       lineCounter++;
+      }
     }
   }
   configFile.close();
   return lineCounter;
 } 
 
+File configFile;
 
 void parseAndPrintConfig(const char *filePath) 
-{
+{ 
+
   if (!SPIFFS.begin(true)) 
   {
     // Serial.println("Failed to mount file system");
     return;
   }
 
-  File configFile = SPIFFS.open(filePath, "r");
+  configFile = SPIFFS.open(filePath, "r");
 
   if (!configFile) 
   {
@@ -70,26 +74,30 @@ void parseAndPrintConfig(const char *filePath)
     String line = configFile.readStringUntil('\n');
     
     if (line.length() > 0) 
-    {
-      if (parseConfigLine(line, colorInstance.colorArray->symbol, colorInstance.colorArray->r, colorInstance.colorArray->g, colorInstance.colorArray->b , colorInstance.colorArray->w)) 
+    {              
+      if(parseConfigLine(line, config.symbol, config.r, config.g, config.b , config.w))
       {
-        storeColorConfig(colorInstance);
+        storeColorConfig(colorInstance , config);
         delay(100);
         colorInstance.colorCount++;
+      
       }
     }
   }
   configFile.close();
-}
-
+} 
 
 void setup() 
   {
     Serial.begin(115200);
-    lineCounter("/colortable1.conf");
-    parseAndPrintConfig("/colortable1.conf");
+    LineCounter("/colortable.conf" , lineCounter);
+    Serial.print("linecouter Value: ");
+    Serial.println(lineCounter);
+    colorInstance.colorArray = new ColorConfig[lineCounter];
+    parseAndPrintConfig("/colortable.conf");
+     
     if (SPIFFS.begin()) 
-    {
+    { 
       File configFile = SPIFFS.open("/config.conf", "r");
 
       if (configFile) 
@@ -103,18 +111,21 @@ void setup()
       {
         Serial.println("Failed to open config file");
       }
-  } 
+    } 
   else 
   {
     Serial.println("Failed to mount SPIFFS");
   }
- 
+  for (int i = 0; i<lineCounter ; i++)
+  {
+   printf("symbol %c color combination %d, %d, %d, %d\n " , colorInstance.colorArray[i].symbol , colorInstance.colorArray[i].r , colorInstance.colorArray[i].g , colorInstance.colorArray[i].b , colorInstance.colorArray[i].w);
+  }
 }
 
 void loop() 
 {
   if (nextAnimationFile != "") 
-  {
+  { 
     currentAnimationFile = nextAnimationFile;
     nextAnimationFile = "";
   }
@@ -157,7 +168,7 @@ void playAnimation(String filename)
 
     if (line.startsWith("STOP")) 
     {
-       
+      
 
     } 
     else if (line.startsWith("PAUSE")) 
@@ -185,7 +196,7 @@ void playAnimation(String filename)
 }
 
 void parseAndUpdateStrip(String line, std::list<ledStripInfo *> &stripList) 
-{
+{ 
   it = stripList.begin();
   int ledIdx = 0;
 
@@ -228,7 +239,7 @@ void parseAndUpdateStrip(String line, std::list<ledStripInfo *> &stripList)
             }
             ledIdx = 0;
           }
-          setPixelColorFromCode(ledIdx, colorCode, colorArray, *it, line);
+          setPixelColorFromCode(ledIdx, colorCode, colorInstance, *it, line);
           ledIdx++;
         }
         i = dashEnd;
@@ -240,7 +251,7 @@ void parseAndUpdateStrip(String line, std::list<ledStripInfo *> &stripList)
         {
           for (int j = ledIdx; j < ((*it)->len); j++) 
           {
-            setPixelColorFromCode(j, colorCode, colorArray, *it, line);
+            setPixelColorFromCode(j, colorCode, colorInstance, *it, line);
           }
           ledIdx = 0;
         }
@@ -259,7 +270,7 @@ void parseAndUpdateStrip(String line, std::list<ledStripInfo *> &stripList)
           break;
         }
       }
-      setPixelColorFromCode(ledIdx, line[i], colorArray, *it, line);
+      setPixelColorFromCode(ledIdx, line[i], colorInstance, *it, line);
       (*it)->strip->show();
       ledIdx++;
     }
@@ -278,31 +289,35 @@ void showingStrips(ledStripInfo *strip)
   }
 }
 
-
 bool parseConfigLine(String line, char &symbol, uint8_t &r, uint8_t &g, uint8_t &b , uint8_t &w) 
 {
   int count = sscanf(line.c_str(), "%c: %d,%d,%d,%d", &symbol, &r, &g, &b, &w);
-  return (count);
+  return (count == 4 || count == 5);
 }
 
-void ifWhite(ColorInstance *colorInstance, int i)
+void ifWhite(struct ColorInstance &colorinst, int i)
 {
-  if(colorArray[i].r == 0 && colorArray[i].g == 0 && colorArray[i].b == 0 && colorArray[i].w)
+  if(colorinst.colorArray[i].r == 0 && colorinst.colorArray[i].g == 0 && colorinst.colorArray[i].b == 0 && colorinst.colorArray[i].w)
   {
-    colorArray[i].r = colorArray[i].w;
-    colorArray[i].g = colorArray[i].w;
-    colorArray[i].b = colorArray[i].w;
+    colorinst.colorArray[i].r = colorinst.colorArray[i].w;
+    colorinst.colorArray[i].g = colorinst.colorArray[i].w;
+    colorinst.colorArray[i].b = colorinst.colorArray[i].w;
   }
 }
 
-void setPixelColorFromCode(int index, char code, ColorInstance *colorInstance, ledStripInfo *strip, String line) 
-{
-  for (int i = 0; i < colorInstance.colorCount; i++) 
-  {
-    if (colorInstance.colorArray->symbol[i] == code) 
-    {  
-      ifWhite(colorInstance.colorArray, i);
-      strip->strip->setPixelColor(index, strip->strip->Color(colorInstance.colorArray[i].r, colorInstance.colorArray[i].g, colorInstance.colorArray[i].b, colorInstance.colorArray[i].w));
+void setPixelColorFromCode(int index, char code, struct ColorInstance &colorinst, ledStripInfo *strip, String line) 
+{  
+  // Serial.print("colorCount: ");
+  // Serial.println(colorinst.colorCount);   
+  for (int i = 0; i < colorinst.colorCount; i++) 
+  { 
+    
+    if (colorinst.colorArray[i].symbol == code) 
+    { 
+
+
+      ifWhite(colorinst, i);
+      strip->strip->setPixelColor(index, strip->strip->Color(colorinst.colorArray[i].r, colorinst.colorArray[i].g, colorinst.colorArray[i].b, colorinst.colorArray[i].w));
     }
   }
 }
