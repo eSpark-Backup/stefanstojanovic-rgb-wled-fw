@@ -8,6 +8,9 @@ typedef struct{
   int brightness = 0;
 }parseFileParameters;
 
+std::list<int> pinsList;
+
+
 ledStripMap stripTypes[] = {
   { "RGB", NEO_RGB },
   { "RBG", NEO_RBG },
@@ -104,6 +107,7 @@ void parseSection(String sectionName, File configFile, std::list<ledStripInfo*>&
       } 
       else if (sectionName == "input") 
       { 
+        pinsList.push_back(parseCurrent.pin);
         pinMode(parseCurrent.pin, INPUT_PULLUP);
       }
       else if (sectionName == "output") 

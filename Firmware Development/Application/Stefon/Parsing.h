@@ -15,5 +15,6 @@ typedef struct {
   const char *type;
 } ledStripInfo;
 
+
 void parseSection(String sectionName, File configFile, std::list<ledStripInfo *> &stripList);
 uint8_t typeCheck(uint8_t *combination, struct ledStripMap (&stripTypes)[30], const char *getType);

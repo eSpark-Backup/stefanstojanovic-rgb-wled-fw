@@ -5,6 +5,10 @@
 #include "Parsing.h"
 #include "StripColors.hpp"
 
+TaskHandle_t Task1;
+TaskHandle_t Task2;
+
+String nextAnimationFile = "";
 int NUM_LEDS = 0;
 std::list<ledStripInfo *> stripList;
 File file;
@@ -13,14 +17,15 @@ struct ColorInstance{
   ColorConfig *colorArray;
   int colorCount = 0;
 };
-
+extern uint8_t inputPins[10];
 
 ColorInstance colorInstance;
 ColorConfig config;
+extern std::list<int> pinsList;
+std::list<int>::iterator itOverPins;
 
-String currentAnimationFile = "/startup.ani";
-String nextAnimationFile = "";
 std::list<ledStripInfo *>::iterator it;
+File configFile;
 
 void storeColorConfig(struct ColorInstance &colorInst , ColorConfig config) 
 { 
@@ -31,25 +36,39 @@ void storeColorConfig(struct ColorInstance &colorInst , ColorConfig config)
   colorInst.colorArray[colorInst.colorCount].w = config.w;
 }
 
-int LineCounter(const char *filePath , int &lineCounter)  
-{  
-  File configFile = SPIFFS.open(filePath, "r");
-  while (configFile.available())
+void LineCounter(const char *filePath)  
+{ 
+  if (!SPIFFS.begin(true)) 
   {
+    // Serial.println("Failed to mount file system");
+    return;
+  }
+  
+  configFile = SPIFFS.open(filePath, "r");
+  
+  if (!configFile) 
+  {
+    //Serial.println("Failed to open config file");
+    return;
+  }
+
+  // Parse and print the configuration
+  while (configFile.available()) 
+  { 
     String line = configFile.readStringUntil('\n');
+    
     if (line.length() > 0) 
-    {
-     if(parseConfigLine(line, config.symbol, config.r, config.g, config.b , config.w))
+    {              
+      if(parseConfigLine(line, config.symbol, config.r, config.g, config.b , config.w))
       {
-       lineCounter++;
+        lineCounter++;
       }
     }
   }
   configFile.close();
-  return lineCounter;
 } 
 
-File configFile;
+
 
 void parseAndPrintConfig(const char *filePath) 
 { 
@@ -80,56 +99,120 @@ void parseAndPrintConfig(const char *filePath)
         storeColorConfig(colorInstance , config);
         delay(100);
         colorInstance.colorCount++;
-      
+
       }
     }
   }
   configFile.close();
 } 
 
-void setup() 
+void isPullDown()
+{
+  for (itOverPins = pinsList.begin(); itOverPins != pinsList.end(); itOverPins++)
   {
-    Serial.begin(115200);
-    LineCounter("/colortable.conf" , lineCounter);
-    Serial.print("linecouter Value: ");
-    Serial.println(lineCounter);
-    colorInstance.colorArray = new ColorConfig[lineCounter];
-    parseAndPrintConfig("/colortable.conf");
-     
-    if (SPIFFS.begin()) 
-    { 
-      File configFile = SPIFFS.open("/config.conf", "r");
+    // Serial.println(*itOverPins);
+    digitalRead(*itOverPins);
+    if(*itOverPins == HIGH)
+    {
+     Serial.println(*itOverPins);
+    }
+    if (itOverPins == pinsList.end())
+    {
+      return;
+    }
+  }
+}
 
-      if (configFile) 
-      {
-        parseSection("", configFile, stripList);  // Pass an empty section name to stat
-        // Serial.println((uint32_t)stripList.front());
+void setup() 
+{
+  Serial.begin(115200);
+  LineCounter("/colortable.conf");
+  Serial.print("linecouter Value: ");
+  Serial.println(lineCounter);
+  colorInstance.colorArray = new ColorConfig[lineCounter];
+  parseAndPrintConfig("/colortable.conf");
+  // for(i = 0; i<10 ; i++)
+  // {
+  //   pinMode(inputPins[i], INPUT_PULLUP);
+  // }
+  if (SPIFFS.begin()) 
+  { 
+    File configFile = SPIFFS.open("/config.conf", "r");
 
-        // strip = stripList.front();
-      } 
-      else 
-      {
-        Serial.println("Failed to open config file");
-      }
+    if (configFile) 
+    {
+      parseSection("", configFile, stripList);  // Pass an empty section name to stat
+      // Serial.println((uint32_t)stripList.front());
+
+      // strip = stripList.front();
     } 
+    else 
+    {
+      Serial.println("Failed to open config file");
+    }
+  } 
   else 
   {
     Serial.println("Failed to mount SPIFFS");
   }
   for (int i = 0; i<lineCounter ; i++)
   {
-   printf("symbol %c color combination %d, %d, %d, %d\n " , colorInstance.colorArray[i].symbol , colorInstance.colorArray[i].r , colorInstance.colorArray[i].g , colorInstance.colorArray[i].b , colorInstance.colorArray[i].w);
+  printf("symbol %c color combination %d, %d, %d, %d\n " , colorInstance.colorArray[i].symbol , colorInstance.colorArray[i].r , colorInstance.colorArray[i].g , colorInstance.colorArray[i].b , colorInstance.colorArray[i].w);
   }
-}
+  // for (itOverPins = pinsList.begin(); itOverPins != pinsList.end(); itOverPins++)
+  // { 
+  //   Serial.print("Printing List of Pins: ");
+  //   Serial.println(*itOverPins);
+  //   if (itOverPins == pinsList.end()){break;}
+  // }
+  xTaskCreatePinnedToCore(Task1code, "Task1" ,  10000 ,   NULL        ,    1      , &Task1,     1);    
+      //                     func       name    stack    parameters     task          task       core of the task
+     //                                         Size     of the task    pariority     handler
+  delay(500);
+  xTaskCreatePinnedToCore(Task2code, "Task2" ,  10000 ,   NULL        ,    2       , &Task2,     1);
+  delay(500);
 
-void loop() 
+}
+void Task1code(void * pvParameters)
 {
+ String currentAnimationFile = "/startup.ani";
+ 
+ while(1)
+ {
+  // Serial.println("Task1 code:: ");
+  // Serial.print("Task1 running on core ");
+  // Serial.println(xPortGetCoreID());
   if (nextAnimationFile != "") 
   { 
     currentAnimationFile = nextAnimationFile;
     nextAnimationFile = "";
   }
   playAnimation(currentAnimationFile);
+  }
+}
+
+void Task2code(void * pvParameters)
+{ 
+  while(1)
+  {
+  
+  // Serial.println("Task2Code:: ");
+  isPullDown();
+  delay(200);
+  
+  }
+}
+
+void loop() 
+{ 
+  // Serial.print("loop() running on core ");
+  // Serial.println(xPortGetCoreID());
+  // if (nextAnimationFile != "") 
+  // { 
+  //   currentAnimationFile = nextAnimationFile;
+  //   nextAnimationFile = "";
+  // }
+  // playAnimation(currentAnimationFile);
 }
 
 
