@@ -109,6 +109,7 @@ void parseSection(String sectionName, File configFile, std::list<ledStripInfo*>&
       { 
         pinsList.push_back(parseCurrent.pin);
         pinMode(parseCurrent.pin, INPUT_PULLUP);
+        delay(50);
       }
       else if (sectionName == "output") 
       {

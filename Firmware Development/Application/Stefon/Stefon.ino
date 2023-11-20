@@ -106,35 +106,39 @@ void parseAndPrintConfig(const char *filePath)
   configFile.close();
 } 
 
-void isPullDown()
+int PinGetPullDown()
 {
   for (itOverPins = pinsList.begin(); itOverPins != pinsList.end(); itOverPins++)
-  {
+  { 
+    // Serial.print("Printing List of Pins: ");
     // Serial.println(*itOverPins);
-    digitalRead(*itOverPins);
-    if(*itOverPins == HIGH)
+    int readPinValueReturn = digitalRead(*itOverPins);
+    if(0 == readPinValueReturn)
     {
-     Serial.println(*itOverPins);
+      return *itOverPins;
     }
+    // else 
+    // {
+    //   return 0;
+    // }
+    delay(200);
     if (itOverPins == pinsList.end())
     {
-      return;
+      break;
     }
   }
 }
 
 void setup() 
 {
+  pinMode(2,INPUT_PULLUP);
   Serial.begin(115200);
   LineCounter("/colortable.conf");
-  Serial.print("linecouter Value: ");
-  Serial.println(lineCounter);
   colorInstance.colorArray = new ColorConfig[lineCounter];
   parseAndPrintConfig("/colortable.conf");
-  // for(i = 0; i<10 ; i++)
-  // {
-  //   pinMode(inputPins[i], INPUT_PULLUP);
-  // }
+  Serial.print("Size of the list: ");
+  int sizee = pinsList.size();
+  Serial.println(sizee);
   if (SPIFFS.begin()) 
   { 
     File configFile = SPIFFS.open("/config.conf", "r");
@@ -159,50 +163,47 @@ void setup()
   {
   printf("symbol %c color combination %d, %d, %d, %d\n " , colorInstance.colorArray[i].symbol , colorInstance.colorArray[i].r , colorInstance.colorArray[i].g , colorInstance.colorArray[i].b , colorInstance.colorArray[i].w);
   }
-  // for (itOverPins = pinsList.begin(); itOverPins != pinsList.end(); itOverPins++)
-  // { 
-  //   Serial.print("Printing List of Pins: ");
-  //   Serial.println(*itOverPins);
-  //   if (itOverPins == pinsList.end()){break;}
-  // }
+
   xTaskCreatePinnedToCore(Task1code, "Task1" ,  10000 ,   NULL        ,    1      , &Task1,     1);    
       //                     func       name    stack    parameters     task          task       core of the task
      //                                         Size     of the task    pariority     handler
-  delay(500);
+  
   xTaskCreatePinnedToCore(Task2code, "Task2" ,  10000 ,   NULL        ,    2       , &Task2,     1);
-  delay(500);
 
 }
 void Task1code(void * pvParameters)
 {
- String currentAnimationFile = "/startup.ani";
  
+ String currentAnimationFile = "/startup.ani";
  while(1)
  {
-  // Serial.println("Task1 code:: ");
-  // Serial.print("Task1 running on core ");
-  // Serial.println(xPortGetCoreID());
   if (nextAnimationFile != "") 
   { 
     currentAnimationFile = nextAnimationFile;
     nextAnimationFile = "";
   }
   playAnimation(currentAnimationFile);
-  }
+ }
 }
 
 void Task2code(void * pvParameters)
 { 
   while(1)
   {
-  
-  // Serial.println("Task2Code:: ");
-  isPullDown();
-  delay(200);
-  
+    while(PinGetPullDown())
+    { 
+      char buffer[5];  // Assuming the maximum length of the string representation of *itOverPins is 10 characters
+      itoa(*itOverPins, buffer, 10);
+      String pinNumber = String(buffer);
+      
+      String currentAnimationFile = "/PIN"+pinNumber+".ani";
+      Serial.println(currentAnimationFile);
+      playAnimation(currentAnimationFile);
+    }
+  Serial.println("before delay");
+  delay(100);
   }
 }
-
 void loop() 
 { 
   // Serial.print("loop() running on core ");
