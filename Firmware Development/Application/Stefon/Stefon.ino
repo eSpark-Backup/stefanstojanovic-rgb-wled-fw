@@ -114,14 +114,11 @@ int PinGetPullDown()
     // Serial.println(*itOverPins);
     int readPinValueReturn = digitalRead(*itOverPins);
     if(0 == readPinValueReturn)
-    {
+    { 
+      Serial.print("Pin number: ");
+      Serial.println(*itOverPins);
       return *itOverPins;
     }
-    // else 
-    // {
-    //   return 0;
-    // }
-    delay(200);
     if (itOverPins == pinsList.end())
     {
       break;
@@ -131,7 +128,6 @@ int PinGetPullDown()
 
 void setup() 
 {
-  pinMode(2,INPUT_PULLUP);
   Serial.begin(115200);
   LineCounter("/colortable.conf");
   colorInstance.colorArray = new ColorConfig[lineCounter];
@@ -171,10 +167,20 @@ void setup()
   xTaskCreatePinnedToCore(Task2code, "Task2" ,  10000 ,   NULL        ,    2       , &Task2,     1);
 
 }
+
+String currentAnimationFile = "/startup.ani";
+void clearingStrips(ledStripInfo *strip)
+{
+  for (it = stripList.begin(); it != stripList.end(); it++) 
+  {
+    (*it)->strip->clear();
+    (*it)->strip->show();
+  }
+}
 void Task1code(void * pvParameters)
 {
  
- String currentAnimationFile = "/startup.ani";
+ 
  while(1)
  {
   if (nextAnimationFile != "") 
@@ -183,6 +189,7 @@ void Task1code(void * pvParameters)
     nextAnimationFile = "";
   }
   playAnimation(currentAnimationFile);
+  delay(50);
  }
 }
 
@@ -190,20 +197,22 @@ void Task2code(void * pvParameters)
 { 
   while(1)
   {
-    while(PinGetPullDown())
+    if(PinGetPullDown())
     { 
-      char buffer[5];  // Assuming the maximum length of the string representation of *itOverPins is 10 characters
+      char buffer[2];  //Assuming the maximum length of the string representation of *itOverPins is 10 characters
       itoa(*itOverPins, buffer, 10);
       String pinNumber = String(buffer);
-      
-      String currentAnimationFile = "/PIN"+pinNumber+".ani";
-      Serial.println(currentAnimationFile);
-      playAnimation(currentAnimationFile);
+      clearingStrips(*it);
+      it = stripList.begin();
+      currentAnimationFile = "/PIN"+pinNumber+".ani";
+      // Serial.println(currentAnimationFile);
+      // playAnimation(currentAnimationFile);
     }
-  Serial.println("before delay");
-  delay(100);
+  // Serial.println("before delay");
+  delay(400);
   }
 }
+
 void loop() 
 { 
   // Serial.print("loop() running on core ");
@@ -372,6 +381,8 @@ void showingStrips(ledStripInfo *strip)
     (*it)->strip->show();
   }
 }
+
+
 
 bool parseConfigLine(String line, char &symbol, uint8_t &r, uint8_t &g, uint8_t &b , uint8_t &w) 
 {
