@@ -7,7 +7,7 @@
 
 TaskHandle_t Task1;
 TaskHandle_t Task2;
-
+int aniFileLinecount = 0;
 String nextAnimationFile = "";
 int NUM_LEDS = 0;
 std::list<ledStripInfo *> stripList;
@@ -22,8 +22,9 @@ extern uint8_t inputPins[10];
 ColorInstance colorInstance;
 ColorConfig config;
 extern std::list<int> pinsList;
-std::list<int>::iterator itOverPins;
 
+std::list<String> recordingAni;
+std::list<String>:: iterator recordAniItr;
 std::list<ledStripInfo *>::iterator it;
 File configFile;
 
@@ -107,23 +108,16 @@ void parseAndPrintConfig(const char *filePath)
 } 
 
 int PinGetPullDown()
-{
-  for (itOverPins = pinsList.begin(); itOverPins != pinsList.end(); itOverPins++)
+{ 
+  for (std::list<int>::iterator it = pinsList.begin(); !(it == pinsList.end()); ++it)
   { 
-    // Serial.print("Printing List of Pins: ");
-    // Serial.println(*itOverPins);
-    int readPinValueReturn = digitalRead(*itOverPins);
+    int readPinValueReturn = digitalRead(*it);
     if(0 == readPinValueReturn)
     { 
-      Serial.print("Pin number: ");
-      Serial.println(*itOverPins);
-      return *itOverPins;
-    }
-    if (itOverPins == pinsList.end())
-    {
-      break;
+      return *it;
     }
   }
+   return 0;
 }
 
 void setup() 
@@ -132,9 +126,6 @@ void setup()
   LineCounter("/colortable.conf");
   colorInstance.colorArray = new ColorConfig[lineCounter];
   parseAndPrintConfig("/colortable.conf");
-  Serial.print("Size of the list: ");
-  int sizee = pinsList.size();
-  Serial.println(sizee);
   if (SPIFFS.begin()) 
   { 
     File configFile = SPIFFS.open("/config.conf", "r");
@@ -155,6 +146,9 @@ void setup()
   {
     Serial.println("Failed to mount SPIFFS");
   }
+  // int sizee = pinsList.size();
+  // Serial.print("Size of the List: ");
+  // Serial.println(sizee);
   for (int i = 0; i<lineCounter ; i++)
   {
   printf("symbol %c color combination %d, %d, %d, %d\n " , colorInstance.colorArray[i].symbol , colorInstance.colorArray[i].r , colorInstance.colorArray[i].g , colorInstance.colorArray[i].b , colorInstance.colorArray[i].w);
@@ -177,41 +171,42 @@ void clearingStrips(ledStripInfo *strip)
     (*it)->strip->show();
   }
 }
+
 void Task1code(void * pvParameters)
-{
- 
- 
- while(1)
- {
-  if (nextAnimationFile != "") 
-  { 
-    currentAnimationFile = nextAnimationFile;
-    nextAnimationFile = "";
-  }
-  playAnimation(currentAnimationFile);
-  delay(50);
+{ 
+  recordingAni.push_back(currentAnimationFile);
+  while(1)
+  {
+    if (nextAnimationFile != "") 
+    { 
+      currentAnimationFile = nextAnimationFile;
+      nextAnimationFile = "";
+    }
+    playAnimation(currentAnimationFile);
  }
 }
 
 void Task2code(void * pvParameters)
 { 
   while(1)
-  {
-    if(PinGetPullDown())
+  { 
+    int pinNum = PinGetPullDown();
+    if(pinNum)
     { 
       char buffer[2];  //Assuming the maximum length of the string representation of *itOverPins is 10 characters
-      itoa(*itOverPins, buffer, 10);
+      itoa(pinNum, buffer, 10);
       String pinNumber = String(buffer);
-      clearingStrips(*it);
-      it = stripList.begin();
       currentAnimationFile = "/PIN"+pinNumber+".ani";
-      // Serial.println(currentAnimationFile);
-      // playAnimation(currentAnimationFile);
+      delay(50);
     }
-  // Serial.println("before delay");
-  delay(400);
+    else
+    { 
+      currentAnimationFile = "/startup.ani";
+      delay(200);
+    }
   }
 }
+                        //Trying to remember the last file............
 
 void loop() 
 { 
@@ -225,8 +220,6 @@ void loop()
   // playAnimation(currentAnimationFile);
 }
 
-
-
 void playAnimation(String filename) 
 {
   file = SPIFFS.open(filename.c_str());
@@ -239,12 +232,12 @@ void playAnimation(String filename)
     // Serial.print("Successfully opened: ");
     // Serial.println(filename);
   }
-  
+
   while (file.available()) 
   {
     String line = file.readStringUntil('\n');
     line.trim();
-    
+
     if (line.startsWith("L:")) 
     {
       NUM_LEDS = line.substring(2).toInt();
@@ -268,12 +261,10 @@ void playAnimation(String filename)
     {
       int pauseDuration = line.substring(6).toInt();
       delay(pauseDuration);
-
       continue;
     } 
     else if (line.indexOf('|') != -1) 
     {
-
       int dividerPos = line.indexOf('|');
       int customDuration = line.substring(0, dividerPos).toInt();
       parseAndUpdateStrip(line.substring(dividerPos + 1), stripList);

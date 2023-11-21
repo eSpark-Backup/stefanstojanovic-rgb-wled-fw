@@ -107,9 +107,10 @@ void parseSection(String sectionName, File configFile, std::list<ledStripInfo*>&
       } 
       else if (sectionName == "input") 
       { 
-        pinsList.push_back(parseCurrent.pin);
+        Serial.print("pins in the list: ");
+        Serial.println(parseCurrent.pin);
         pinMode(parseCurrent.pin, INPUT_PULLUP);
-        delay(50);
+        pinsList.push_back(parseCurrent.pin);
       }
       else if (sectionName == "output") 
       {
