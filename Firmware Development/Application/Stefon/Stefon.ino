@@ -24,7 +24,7 @@ ColorConfig config;
 extern std::list<int> pinsList;
 
 std::list<String> recordingAni;
-std::list<String>:: iterator recordAniItr;
+std::list<String>::iterator recordAniItr;
 std::list<ledStripInfo *>::iterator it;
 File configFile;
 
@@ -173,8 +173,7 @@ void clearingStrips(ledStripInfo *strip)
 }
 
 void Task1code(void * pvParameters)
-{ 
-  recordingAni.push_back(currentAnimationFile);
+{
   while(1)
   {
     if (nextAnimationFile != "") 
@@ -183,6 +182,8 @@ void Task1code(void * pvParameters)
       nextAnimationFile = "";
     }
     playAnimation(currentAnimationFile);
+    // recordingAni.pop_back(currentAnimationFile);
+    recordingAni.push_back(currentAnimationFile);  
  }
 }
 
@@ -197,16 +198,24 @@ void Task2code(void * pvParameters)
       itoa(pinNum, buffer, 10);
       String pinNumber = String(buffer);
       currentAnimationFile = "/PIN"+pinNumber+".ani";
-      delay(50);
+      playAnimation(currentAnimationFile);
+      // recordingAni.pop_back(currentAnimationFile);
+      recordingAni.push_back(currentAnimationFile);
     }
     else
     { 
+      // for(recordAniItr = recordingAni.begin() ; recordAniItr != recordingAni.end() ; recordAniItr++)
+      // {
+      //   Serial.println(*recordAniItr);
+      // }
+      Serial.print("Size of the list: ");
+      Serial.println(recordingAni.size());
       currentAnimationFile = "/startup.ani";
-      delay(200);
+      delay(50);
     }
   }
 }
-                        //Trying to remember the last file............
+// Trying to remember the last file............
 
 void loop() 
 { 
@@ -232,12 +241,13 @@ void playAnimation(String filename)
     // Serial.print("Successfully opened: ");
     // Serial.println(filename);
   }
-
+  int count = 0;
   while (file.available()) 
   {
     String line = file.readStringUntil('\n');
     line.trim();
-
+    // count++;
+    // Serial.println(count); 
     if (line.startsWith("L:")) 
     {
       NUM_LEDS = line.substring(2).toInt();
