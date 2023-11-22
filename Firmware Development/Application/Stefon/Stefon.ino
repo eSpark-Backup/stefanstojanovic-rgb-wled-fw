@@ -11,7 +11,7 @@ int aniFileLinecount = 0;
 String nextAnimationFile = "";
 int NUM_LEDS = 0;
 std::list<ledStripInfo *> stripList;
-File file;
+
 int lineCounter = 0;
 struct ColorInstance{ 
   ColorConfig *colorArray;
@@ -153,12 +153,13 @@ void setup()
   {
   printf("symbol %c color combination %d, %d, %d, %d\n " , colorInstance.colorArray[i].symbol , colorInstance.colorArray[i].r , colorInstance.colorArray[i].g , colorInstance.colorArray[i].b , colorInstance.colorArray[i].w);
   }
+    // Initialize semaphore
 
   xTaskCreatePinnedToCore(Task1code, "Task1" ,  10000 ,   NULL        ,    1      , &Task1,     1);    
       //                     func       name    stack    parameters     task          task       core of the task
      //                                         Size     of the task    pariority     handler
   
-  xTaskCreatePinnedToCore(Task2code, "Task2" ,  10000 ,   NULL        ,    2       , &Task2,     1);
+  xTaskCreatePinnedToCore(Task2code, "Task2" ,  10000 ,   NULL        ,    2      , &Task2,     1);
 
 }
 
@@ -172,54 +173,75 @@ void clearingStrips(ledStripInfo *strip)
   }
 }
 
-void Task1code(void * pvParameters)
+struct TaskParams
 {
-  while(1)
+  int pinNum;
+  TaskParams(int pin) : pinNum(pin) {}
+};
+
+void Task1code(void *pvParameters)
+{
+
+
+  while (1)
   {
-    if (nextAnimationFile != "") 
-    { 
+    // Serial.println("Task1");
+    if (nextAnimationFile != "")
+    {
       currentAnimationFile = nextAnimationFile;
       nextAnimationFile = "";
     }
     playAnimation(currentAnimationFile);
-    // recordingAni.pop_back(currentAnimationFile);
-    recordingAni.push_back(currentAnimationFile);  
- }
-}
-
-void Task2code(void * pvParameters)
-{ 
-  while(1)
-  { 
-    int pinNum = PinGetPullDown();
-    if(pinNum)
-    { 
-      char buffer[2];  //Assuming the maximum length of the string representation of *itOverPins is 10 characters
-      itoa(pinNum, buffer, 10);
-      String pinNumber = String(buffer);
-      currentAnimationFile = "/PIN"+pinNumber+".ani";
-      playAnimation(currentAnimationFile);
-      // recordingAni.pop_back(currentAnimationFile);
-      recordingAni.push_back(currentAnimationFile);
-    }
-    else
-    { 
-      // for(recordAniItr = recordingAni.begin() ; recordAniItr != recordingAni.end() ; recordAniItr++)
-      // {
-      //   Serial.println(*recordAniItr);
-      // }
-      Serial.print("Size of the list: ");
-      Serial.println(recordingAni.size());
-      currentAnimationFile = "/startup.ani";
-      delay(50);
-    }
+    delay(100);
   }
 }
-// Trying to remember the last file............
+
+void Task2code(void *pvParameters)
+{
+  while (1)
+  {
+    // Serial.println("Task2");
+    int pinNum = PinGetPullDown();
+    uint8_t previousPinNum = pinNum;
+    if(pinNum)
+    {
+      BaseType_t taskCreated;
+      TaskHandle_t newTaskHandle;
+      char buffer[2];
+      itoa(pinNum, buffer, 10);
+      String pinNumber = String(buffer);
+      currentAnimationFile = "/PIN" + pinNumber + ".ani";
+      // Serial.println("Before task creation");
+      if(pinNum == 4)
+      {
+       xTaskCreate(Task3code, "task3", 1000, NULL , 11 , &newTaskHandle);
+       pinNum = 0;
+      }
+    }
+    else
+    {
+      currentAnimationFile = "/startup.ani";
+    }
+    delay(100);
+  }
+}
+
+void Task3code(void *pvParameters)
+{ 
+  Serial.println("Task3");
+  while (1)
+  {
+    Serial.println("while: ");
+    playAnimation(currentAnimationFile);
+    delay(100);
+  }
+}
+
 
 void loop() 
 { 
-  // Serial.print("loop() running on core ");
+  // Serial.println("loop()");
+  delay(100);
   // Serial.println(xPortGetCoreID());
   // if (nextAnimationFile != "") 
   // { 
@@ -231,7 +253,7 @@ void loop()
 
 void playAnimation(String filename) 
 {
-  file = SPIFFS.open(filename.c_str());
+  File file = SPIFFS.open(filename.c_str());
   if (!file) 
   {
     return;
