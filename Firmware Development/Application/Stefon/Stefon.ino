@@ -100,7 +100,7 @@ void parseAndPrintConfig(const char *filePath)
       if(parseConfigLine(line, config.symbol, config.r, config.g, config.b , config.w))
       {
         storeColorConfig(colorInstance , config);
-        delay(100);
+        delay(10);
         colorInstance.colorCount++;
 
       }
@@ -121,7 +121,10 @@ int PinGetPullDown()
   }
    return 0;
 }
-
+struct Task3Parameters {
+  int pinNum;
+  bool whenTrue;
+};
 void setup() 
 {
   Serial.begin(115200);
@@ -157,11 +160,11 @@ void setup()
   }
     // Initialize semaphore
 
-  xTaskCreatePinnedToCore(Task1code, "Task1" ,  1024 ,   NULL        ,    1      , &Task1,     1);    
+  xTaskCreatePinnedToCore(Task1code, "Task1" ,  10000 ,   NULL        ,    1      , &Task1,     1);    
       //                     func       name    stack    parameters     task          task       core of the task
      //                                         Size     of the task    pariority     handler
   
-  xTaskCreatePinnedToCore(Task2code, "Task2" ,  1024 ,   NULL        ,    2      , &Task2,     1);
+  xTaskCreatePinnedToCore(Task2code, "Task2" ,  10000 ,   NULL        ,    3      , &Task2,     1);
 
 }
 
@@ -175,19 +178,12 @@ void clearingStrips(ledStripInfo *strip)
   }
 }
 
-struct TaskParams
-{
-  int pinNum;
-  TaskParams(int pin) : pinNum(pin) {}
-};
-
 void Task1code(void *pvParameters)
 {
-
-
+  
   while (1)
-  {
-    // Serial.println("Task1");
+  { 
+    Serial.println("Task1");
     if (nextAnimationFile != "")
     {
       currentAnimationFile = nextAnimationFile;
@@ -197,16 +193,19 @@ void Task1code(void *pvParameters)
     delay(100);
   }
 }
-
+bool whenTrue = false;
 void Task2code(void *pvParameters)
-{
+{ 
+  
+  int checked = 0;
   while (1)
   {
-    // Serial.println("Task2");
+    Serial.println("Task2");
+    whenTrue = false;
     int pinNum = PinGetPullDown();
-    uint8_t previousPinNum = pinNum;
     if(pinNum)
-    {
+    { 
+      whenTrue = true;
       BaseType_t taskCreated;
       TaskHandle_t newTaskHandle;
       char buffer[2];
@@ -214,16 +213,21 @@ void Task2code(void *pvParameters)
       String pinNumber = String(buffer);
       currentAnimationFile = "/PIN" + pinNumber + ".ani";
       // Serial.println("Before task creation");
-      if(pinNum == 4)
+      Task3Parameters task3Params;
+      task3Params.pinNum = pinNum;
+      
+      if(pinNum == 4 && !checked)
       {
-//       xTaskCreate(Task3code, "task3", 1000, NULL , 3 , &newTaskHandle);
-       xTaskCreatePinnedToCore(Task3code, "Task3" ,  1024 ,   NULL        ,    3      , &Task3,     1);
-       pinNum = 0;
-      }
+       Serial.println("if(pinNum == 4 && !checked)");
+        // Create an instance of the struct and populate its fields
+
+       xTaskCreatePinnedToCore(Task3code, "Task3" ,  10000 ,   (void*)&task3Params ,   2    , &Task3,  1);
+       checked = 1;
+      } 
     }
     else
     {
-      currentAnimationFile = "/startup.ani";
+      whenTrue = false;
     }
     delay(100);
   }
@@ -231,11 +235,17 @@ void Task2code(void *pvParameters)
 
 void Task3code(void *pvParameters)
 { 
-  Serial.println("Task3");
+  Task3Parameters *params = (Task3Parameters*)pvParameters; // Cast the parameter back to struct pointer
+  int pinNum = params->pinNum;
   while (1)
-  {
-    Serial.println("while: ");
-    playAnimation(currentAnimationFile);
+  { 
+    Serial.println("Task 3");
+    while(whenTrue)
+    {
+      Serial.println("while TRUEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE");
+      Serial.println(whenTrue);
+      playAnimation(currentAnimationFile);
+    }
     delay(100);
   }
 }
@@ -243,7 +253,7 @@ void Task3code(void *pvParameters)
 
 void loop() 
 { 
-  // Serial.println("loop()");
+  Serial.println("loop()");
   delay(100);
   // Serial.println(xPortGetCoreID());
   // if (nextAnimationFile != "") 
@@ -255,8 +265,10 @@ void loop()
 }
 
 void playAnimation(String filename) 
-{
+{ 
+  
   File file = SPIFFS.open(filename.c_str());
+ 
   if (!file) 
   {
     return;
@@ -266,7 +278,7 @@ void playAnimation(String filename)
     // Serial.print("Successfully opened: ");
     // Serial.println(filename);
   }
-  int count = 0;
+
   while (file.available()) 
   {
     String line = file.readStringUntil('\n');
@@ -308,7 +320,7 @@ void playAnimation(String filename)
     else 
     {
       parseAndUpdateStrip(line, stripList);
-      delay(100);
+      delay(10);
     }
   }
   file.close();
@@ -390,7 +402,6 @@ void parseAndUpdateStrip(String line, std::list<ledStripInfo *> &stripList)
         }
       }
       setPixelColorFromCode(ledIdx, line[i], colorInstance, *it, line);
-      (*it)->strip->show();
       ledIdx++;
     }
   }
@@ -428,15 +439,11 @@ void ifWhite(struct ColorInstance &colorinst, int i)
 
 void setPixelColorFromCode(int index, char code, struct ColorInstance &colorinst, ledStripInfo *strip, String line) 
 {  
-  // Serial.print("colorCount: ");
-  // Serial.println(colorinst.colorCount);   
   for (int i = 0; i < colorinst.colorCount; i++) 
   { 
     
     if (colorinst.colorArray[i].symbol == code) 
     { 
-
-
       ifWhite(colorinst, i);
       strip->strip->setPixelColor(index, strip->strip->Color(colorinst.colorArray[i].r, colorinst.colorArray[i].g, colorinst.colorArray[i].b, colorinst.colorArray[i].w));
     }
