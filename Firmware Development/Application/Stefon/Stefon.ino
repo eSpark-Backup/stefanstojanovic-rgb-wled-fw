@@ -7,6 +7,8 @@
 
 TaskHandle_t Task1;
 TaskHandle_t Task2;
+TaskHandle_t Task3;
+
 int aniFileLinecount = 0;
 String nextAnimationFile = "";
 int NUM_LEDS = 0;
@@ -155,11 +157,11 @@ void setup()
   }
     // Initialize semaphore
 
-  xTaskCreatePinnedToCore(Task1code, "Task1" ,  10000 ,   NULL        ,    1      , &Task1,     1);    
+  xTaskCreatePinnedToCore(Task1code, "Task1" ,  1024 ,   NULL        ,    1      , &Task1,     1);    
       //                     func       name    stack    parameters     task          task       core of the task
      //                                         Size     of the task    pariority     handler
   
-  xTaskCreatePinnedToCore(Task2code, "Task2" ,  10000 ,   NULL        ,    2      , &Task2,     1);
+  xTaskCreatePinnedToCore(Task2code, "Task2" ,  1024 ,   NULL        ,    2      , &Task2,     1);
 
 }
 
@@ -214,7 +216,8 @@ void Task2code(void *pvParameters)
       // Serial.println("Before task creation");
       if(pinNum == 4)
       {
-       xTaskCreate(Task3code, "task3", 1000, NULL , 11 , &newTaskHandle);
+//       xTaskCreate(Task3code, "task3", 1000, NULL , 3 , &newTaskHandle);
+       xTaskCreatePinnedToCore(Task3code, "Task3" ,  1024 ,   NULL        ,    3      , &Task3,     1);
        pinNum = 0;
       }
     }
