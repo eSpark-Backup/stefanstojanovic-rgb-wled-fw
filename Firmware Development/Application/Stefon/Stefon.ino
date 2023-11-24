@@ -164,7 +164,7 @@ void setup()
       //                     func       name    stack    parameters     task          task       core of the task
      //                                         Size     of the task    pariority     handler
   
-  xTaskCreatePinnedToCore(Task2code, "Task2" ,  10000 ,   NULL        ,    3      , &Task2,     1);
+  xTaskCreatePinnedToCore(Task2code, "Task2" ,  10000 ,   NULL        ,    3     , &Task2,     1);
 
 }
 
@@ -188,7 +188,7 @@ void Task1code(void *pvParameters)
       currentAnimationFile = nextAnimationFile;
       nextAnimationFile = "";
     }
-    playAnimation(currentAnimationFile);
+    playAnimation(currentAnimationFile , -1);
     delay(100);
   }
 }
@@ -196,13 +196,14 @@ bool whenTrue = false;
 int checked = 0;
 void Task2code(void *pvParameters)
 { 
-  
   while (1)
   { 
+    // Serial.println("Task2");
     whenTrue = false;
     int pinNum = PinGetPullDown();
     if(pinNum)
     { 
+      // Serial.println("if pinNum :::::: ");
       clearingStrips(*it);
       whenTrue = true;
       BaseType_t taskCreated;
@@ -231,25 +232,27 @@ void Task3code(void *pvParameters)
   itoa(pinNum, buffer, 10);
   String pinNumber = String(buffer);
   String currentAnimationFile = "/PIN" + pinNumber + ".ani";
+  vTaskSuspend(Task1);
+  clearingStrips(*it);
   while (1)
   { 
-    while(whenTrue)
+    playAnimation(currentAnimationFile , pinNum);
+    int readPin = digitalRead(pinNum);
+    if(readPin == 1)
     { 
-      clearingStrips(*it);
-      vTaskSuspend(Task1);
-      playAnimation(currentAnimationFile);
-      
+      checked = 0;
+      Serial.println("read pin condition");
+      break;
     }
-    vTaskResume(Task1);
-    checked = 0;
-    vTaskDelete(Task3);
-    delay(10);
   }
+  Serial.println("While se bahar");
+  vTaskResume(Task1);
+  vTaskDelete(NULL);
 }
-
 
 void loop() 
 { 
+ 
   delay(10);
   // Serial.println(xPortGetCoreID());
   // if (nextAnimationFile != "") 
@@ -260,10 +263,9 @@ void loop()
   // playAnimation(currentAnimationFile);
 }
 
-void playAnimation(String filename) 
+void playAnimation(String filename , int pinNum) 
 { 
-  
-  File file = SPIFFS.open(filename.c_str());
+ File file = SPIFFS.open(filename.c_str());
  
   if (!file) 
   {
@@ -274,13 +276,26 @@ void playAnimation(String filename)
     // Serial.print("Successfully opened: ");
     // Serial.println(filename);
   }
-
+  
   while (file.available()) 
-  {
+  { 
+    int readPin;
+    if(pinNum == -1)
+    {
+      readPin == 0;
+    }
+    else
+    {
+      readPin = digitalRead(pinNum);
+    }
     String line = file.readStringUntil('\n');
     line.trim();
     // count++;
-    // Serial.println(count); 
+    if(readPin == 1)
+    {
+      return;
+    }
+    // Serial.println(whenTrue);
     if (line.startsWith("L:")) 
     {
       NUM_LEDS = line.substring(2).toInt();
