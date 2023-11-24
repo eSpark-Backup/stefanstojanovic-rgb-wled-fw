@@ -168,7 +168,7 @@ void setup()
 
 }
 
-String currentAnimationFile = "/startup.ani";
+
 void clearingStrips(ledStripInfo *strip)
 {
   for (it = stripList.begin(); it != stripList.end(); it++) 
@@ -180,10 +180,9 @@ void clearingStrips(ledStripInfo *strip)
 
 void Task1code(void *pvParameters)
 {
-  
+  String currentAnimationFile = "/startup.ani";
   while (1)
   { 
-    Serial.println("Task1");
     if (nextAnimationFile != "")
     {
       currentAnimationFile = nextAnimationFile;
@@ -194,34 +193,25 @@ void Task1code(void *pvParameters)
   }
 }
 bool whenTrue = false;
+int checked = 0;
 void Task2code(void *pvParameters)
 { 
   
-  int checked = 0;
   while (1)
-  {
-    Serial.println("Task2");
+  { 
     whenTrue = false;
     int pinNum = PinGetPullDown();
     if(pinNum)
     { 
+      clearingStrips(*it);
       whenTrue = true;
       BaseType_t taskCreated;
       TaskHandle_t newTaskHandle;
-      char buffer[2];
-      itoa(pinNum, buffer, 10);
-      String pinNumber = String(buffer);
-      currentAnimationFile = "/PIN" + pinNumber + ".ani";
-      // Serial.println("Before task creation");
-      Task3Parameters task3Params;
-      task3Params.pinNum = pinNum;
-      
-      if(pinNum == 4 && !checked)
+      if(!checked)
       {
        Serial.println("if(pinNum == 4 && !checked)");
         // Create an instance of the struct and populate its fields
-
-       xTaskCreatePinnedToCore(Task3code, "Task3" ,  10000 ,   (void*)&task3Params ,   2    , &Task3,  1);
+       xTaskCreatePinnedToCore(Task3code, "Task3" ,  10000 ,   (void*)&pinNum ,   2    , &Task3,  1);
        checked = 1;
       } 
     }
@@ -229,32 +219,38 @@ void Task2code(void *pvParameters)
     {
       whenTrue = false;
     }
-    delay(100);
+    delay(10);
   }
 }
 
 void Task3code(void *pvParameters)
 { 
-  Task3Parameters *params = (Task3Parameters*)pvParameters; // Cast the parameter back to struct pointer
-  int pinNum = params->pinNum;
+  int *pPinNum = (int*)pvParameters; // Cast the parameter back to int pointer
+  int pinNum = *pPinNum; // Dereference the pointer to get the value
+  char buffer[2];
+  itoa(pinNum, buffer, 10);
+  String pinNumber = String(buffer);
+  String currentAnimationFile = "/PIN" + pinNumber + ".ani";
   while (1)
   { 
-    Serial.println("Task 3");
     while(whenTrue)
-    {
-      Serial.println("while TRUEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE");
-      Serial.println(whenTrue);
+    { 
+      clearingStrips(*it);
+      vTaskSuspend(Task1);
       playAnimation(currentAnimationFile);
+      
     }
-    delay(100);
+    vTaskResume(Task1);
+    checked = 0;
+    vTaskDelete(Task3);
+    delay(10);
   }
 }
 
 
 void loop() 
 { 
-  Serial.println("loop()");
-  delay(100);
+  delay(10);
   // Serial.println(xPortGetCoreID());
   // if (nextAnimationFile != "") 
   // { 
