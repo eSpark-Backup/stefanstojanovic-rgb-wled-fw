@@ -19,12 +19,11 @@ struct ColorInstance{
   ColorConfig *colorArray;
   int colorCount = 0;
 };
-extern uint8_t inputPins[10];
 
 ColorInstance colorInstance;
 ColorConfig config;
 extern std::list<int> pinsList;
-
+extern struct 
 std::list<String> recordingAni;
 std::list<String>::iterator recordAniItr;
 std::list<ledStripInfo *>::iterator it;
@@ -240,12 +239,11 @@ void Task3code(void *pvParameters)
     int readPin = digitalRead(pinNum);
     if(readPin == 1)
     { 
-      checked = 0;
-      Serial.println("read pin condition");
       break;
     }
   }
-  Serial.println("While se bahar");
+  checked = 0;
+  clearingStrips(*it);
   vTaskResume(Task1);
   vTaskDelete(NULL);
 }
@@ -263,8 +261,9 @@ void loop()
   // playAnimation(currentAnimationFile);
 }
 
+bool ifDelta = false;
 void playAnimation(String filename , int pinNum) 
-{ 
+{  
  File file = SPIFFS.open(filename.c_str());
  
   if (!file) 
@@ -309,11 +308,10 @@ void playAnimation(String filename , int pinNum)
       nextAnimationFile = "/" + line;
       break;  // Exit out of the while loop to let the main loop handle the file switch
     }
-
+    
     if (line.startsWith("STOP")) 
-    {
-      
-
+    { 
+      parseAndUpdateStrip(line, stripList , 0);
     } 
     else if (line.startsWith("PAUSE")) 
     {
@@ -325,20 +323,33 @@ void playAnimation(String filename , int pinNum)
     {
       int dividerPos = line.indexOf('|');
       int customDuration = line.substring(0, dividerPos).toInt();
-      parseAndUpdateStrip(line.substring(dividerPos + 1), stripList);
+      parseAndUpdateStrip(line.substring(dividerPos + 1), stripList , 0);
       delay(customDuration);
     } 
+    else if (line.indexOf('~') != -1)
+    {
+      int dividerPos = line.indexOf('~');
+      int customDuration = line.substring(0, dividerPos).toInt();
+      ifDelta = true;
+      parseAndUpdateStrip(line.substring(dividerPos + 1), stripList, customDuration);
+      continue;
+    }
     else 
     {
-      parseAndUpdateStrip(line, stripList);
-      delay(10);
+      parseAndUpdateStrip(line, stripList , 0);
+      delay(100);
     }
   }
   file.close();
 }
 
-void parseAndUpdateStrip(String line, std::list<ledStripInfo *> &stripList) 
+void parseAndUpdateStrip(String line, std::list<ledStripInfo *> &stripList , int costumDuration) 
 { 
+  bool stopCommand = false;
+  if(line == "STOP")
+  {
+    stopCommand = true;
+  }
   it = stripList.begin();
   int ledIdx = 0;
 
@@ -412,12 +423,75 @@ void parseAndUpdateStrip(String line, std::list<ledStripInfo *> &stripList)
           break;
         }
       }
-      setPixelColorFromCode(ledIdx, line[i], colorInstance, *it, line);
-      ledIdx++;
+      if(ifDelta)
+      { 
+        uint8_t getBrightnessValue = (*it)->strip->getBrightness();
+        float divideRatioValue = 0;
+        if(costumDuration)
+        { 
+          Serial.println("IF: ");
+          divideRatioValue = ((float)getBrightnessValue)/costumDuration;   //costumDuration
+        }
+        else
+        { 
+          Serial.println("ELSE: ");
+          divideRatioValue = ((float)getBrightnessValue)/100;
+        }
+        Serial.println(costumDuration);
+        unsigned long startTime;
+        unsigned long measureTime = 0;
+        startTime = millis();
+        for(float i = getBrightnessValue ; i >= 0;)
+        { 
+          
+          for (it = stripList.begin(); it != stripList.end(); it++)
+          {
+           (*it)->strip->setBrightness(i);
+          }
+          showingStrips(*it);
+          measureTime = millis() - startTime;
+          i = getBrightnessValue - (divideRatioValue * measureTime);
+        }
+        // unsigned long endTime = millis();
+        // unsigned long loopTime = endTime - startTime;
+        // Serial.println(loopTime);
+        ifDelta = false;
+        for (it = stripList.begin(); it != stripList.end(); it++)
+        {
+          (*it)->strip->setBrightness(getBrightnessValue);
+        }
+        return;
+      }
+      else if(stopCommand)
+      {  
+        uint8_t getBrightnessValue = (*it)->strip->getBrightness();
+        Serial.println(getBrightnessValue);
+        while(1)
+        {
+          stopCommand = false;
+          for (it = stripList.begin(); it != stripList.end(); it++)
+          {
+            (*it)->strip->setBrightness(getBrightnessValue);
+          }
+          showingStrips(*it);
+          delay(1000);
+          for (it = stripList.begin(); it != stripList.end(); it++)
+          {
+            (*it)->strip->setBrightness(1);
+          }
+          showingStrips(*it);
+          delay(1000);
+        }
+      }
+      else
+      {
+        setPixelColorFromCode(ledIdx, line[i], colorInstance, *it, line);
+        ledIdx++;
+      }
     }
   }
-
 showStrip:
+  
   showingStrips(*it);
   it = stripList.begin();
 }
