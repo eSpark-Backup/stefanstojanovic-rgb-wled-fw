@@ -4,6 +4,14 @@
 #include <Adafruit_NeoPixel.h>
 #include <list>
 
+typedef struct{
+  int pin = 0;
+  uint16_t length = 0;
+  int skip = 0;
+  int brightness = 0;
+  int debug = 0;
+}parseFileParameters;
+
 struct ledStripMap {
   const char *type;
   uint8_t value;

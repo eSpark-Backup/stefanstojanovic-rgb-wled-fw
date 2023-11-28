@@ -1,12 +1,7 @@
 #include "Parsing.h"
 #include <list>
 
-typedef struct{
-  int pin = 0;
-  uint16_t length = 0;
-  int skip = 0;
-  int brightness = 0;
-}parseFileParameters;
+
 
 std::list<int> pinsList;
 
@@ -63,12 +58,11 @@ uint8_t typeCheck(uint8_t *combination , struct ledStripMap (&stripTypes)[30] , 
     return *combination;
   }
 }
-
+parseFileParameters parseCurrent;
 void parseSection(String sectionName, File configFile, std::list<ledStripInfo*>& stripList) 
 {
   while (configFile.available()) 
   { 
-    parseFileParameters parseCurrent;
     String line = configFile.readStringUntil('\n');
     line.trim();
 
@@ -81,8 +75,6 @@ void parseSection(String sectionName, File configFile, std::list<ledStripInfo*>&
     if (line.startsWith("[")) 
     {
       sectionName = line.substring(1, line.length() - 1);
-      // Print section name
-
     } 
     else if (line.startsWith("P:")) 
     { 
@@ -107,8 +99,6 @@ void parseSection(String sectionName, File configFile, std::list<ledStripInfo*>&
       } 
       else if (sectionName == "input") 
       { 
-        Serial.print("pins in the list: ");
-        Serial.println(parseCurrent.pin);
         pinMode(parseCurrent.pin, INPUT_PULLUP);
         pinsList.push_back(parseCurrent.pin);
       }
@@ -127,7 +117,16 @@ void parseSection(String sectionName, File configFile, std::list<ledStripInfo*>&
         }
       }
     }
-  }
+    else if (sectionName == "debug")
+    { 
+      // Parse debug information
+      if (line.startsWith("debug="))
+      {
+        parseCurrent.debug = line.substring(line.indexOf("=") + 1).toInt();
+        // You can store the debug value or use it as needed
+      }
+    }
+  } 
 }
 
 

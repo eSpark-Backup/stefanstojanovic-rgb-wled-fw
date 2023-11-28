@@ -8,7 +8,7 @@
 TaskHandle_t Task1;
 TaskHandle_t Task2;
 TaskHandle_t Task3;
-
+bool debugMode = false;
 int aniFileLinecount = 0;
 String nextAnimationFile = "";
 int NUM_LEDS = 0;
@@ -23,7 +23,7 @@ struct ColorInstance{
 ColorInstance colorInstance;
 ColorConfig config;
 extern std::list<int> pinsList;
-extern struct 
+extern parseFileParameters parseCurrent;
 std::list<String> recordingAni;
 std::list<String>::iterator recordAniItr;
 std::list<ledStripInfo *>::iterator it;
@@ -42,7 +42,7 @@ void LineCounter(const char *filePath)
 { 
   if (!SPIFFS.begin(true)) 
   {
-    // Serial.println("Failed to mount file system");
+    debugPrint("Failed to mount file system");
     return;
   }
   
@@ -50,7 +50,7 @@ void LineCounter(const char *filePath)
   
   if (!configFile) 
   {
-    //Serial.println("Failed to open config file");
+    debugPrint("Failed to open config file");
     return;
   }
 
@@ -77,7 +77,7 @@ void parseAndPrintConfig(const char *filePath)
 
   if (!SPIFFS.begin(true)) 
   {
-    // Serial.println("Failed to mount file system");
+    debugPrint("Failed to mount file system");
     return;
   }
 
@@ -85,7 +85,7 @@ void parseAndPrintConfig(const char *filePath)
 
   if (!configFile) 
   {
-    // Serial.println("Failed to open config file");
+    Serial.println("Failed to open config file");
     return;
   }
 
@@ -125,7 +125,7 @@ struct Task3Parameters {
   bool whenTrue;
 };
 void setup() 
-{
+{ 
   Serial.begin(115200);
   LineCounter("/colortable.conf");
   colorInstance.colorArray = new ColorConfig[lineCounter];
@@ -133,30 +133,30 @@ void setup()
   if (SPIFFS.begin()) 
   { 
     File configFile = SPIFFS.open("/config.conf", "r");
-
     if (configFile) 
     {
       parseSection("", configFile, stripList);  // Pass an empty section name to stat
-      // Serial.println((uint32_t)stripList.front());
-
-      // strip = stripList.front();
+      if(1 == parseCurrent.debug)
+      {
+        debugMode = true;
+      }
     } 
     else 
     {
-      Serial.println("Failed to open config file");
+      debugPrint("Failed to open config file");
     }
   } 
   else 
   {
-    Serial.println("Failed to mount SPIFFS");
+    debugPrint("Failed to mount SPIFFS");
   }
   // int sizee = pinsList.size();
   // Serial.print("Size of the List: ");
   // Serial.println(sizee);
-  for (int i = 0; i<lineCounter ; i++)
-  {
-  printf("symbol %c color combination %d, %d, %d, %d\n " , colorInstance.colorArray[i].symbol , colorInstance.colorArray[i].r , colorInstance.colorArray[i].g , colorInstance.colorArray[i].b , colorInstance.colorArray[i].w);
-  }
+  // for (int i = 0; i<lineCounter ; i++)
+  // {
+  // printf("symbol %c color combination %d, %d, %d, %d\n " , colorInstance.colorArray[i].symbol , colorInstance.colorArray[i].r , colorInstance.colorArray[i].g , colorInstance.colorArray[i].b , colorInstance.colorArray[i].w);
+  // }
     // Initialize semaphore
 
   xTaskCreatePinnedToCore(Task1code, "Task1" ,  10000 ,   NULL        ,    1      , &Task1,     1);    
@@ -167,6 +167,9 @@ void setup()
 
 }
 
+void debugPrint(String DebugText) {
+  if (debugMode) Serial.println(DebugText);
+}
 
 void clearingStrips(ledStripInfo *strip)
 {
@@ -197,19 +200,17 @@ void Task2code(void *pvParameters)
 { 
   while (1)
   { 
-    // Serial.println("Task2");
     whenTrue = false;
     int pinNum = PinGetPullDown();
     if(pinNum)
     { 
-      // Serial.println("if pinNum :::::: ");
       clearingStrips(*it);
       whenTrue = true;
       BaseType_t taskCreated;
       TaskHandle_t newTaskHandle;
       if(!checked)
       {
-       Serial.println("if(pinNum == 4 && !checked)");
+       debugPrint("if(pinNum == 4 && !checked)");
         // Create an instance of the struct and populate its fields
        xTaskCreatePinnedToCore(Task3code, "Task3" ,  10000 ,   (void*)&pinNum ,   2    , &Task3,  1);
        checked = 1;
@@ -264,18 +265,16 @@ void loop()
 bool ifDelta = false;
 void playAnimation(String filename , int pinNum) 
 {  
- File file = SPIFFS.open(filename.c_str());
- 
+  File file = SPIFFS.open(filename.c_str());
+  size_t currentPosition = 0;
   if (!file) 
   {
     return;
   } 
   else 
   {
-    // Serial.print("Successfully opened: ");
-    // Serial.println(filename);
+    debugPrint("Succesfully opened animation file: " + filename);
   }
-  
   while (file.available()) 
   { 
     int readPin;
@@ -287,14 +286,17 @@ void playAnimation(String filename , int pinNum)
     {
       readPin = digitalRead(pinNum);
     }
+    size_t position = file.position();
     String line = file.readStringUntil('\n');
     line.trim();
-    // count++;
+    if (!line.startsWith("STOP")) 
+    { 
+      currentPosition = position;
+    }
     if(readPin == 1)
     {
       return;
     }
-    // Serial.println(whenTrue);
     if (line.startsWith("L:")) 
     {
       NUM_LEDS = line.substring(2).toInt();
@@ -311,6 +313,7 @@ void playAnimation(String filename , int pinNum)
     
     if (line.startsWith("STOP")) 
     { 
+      file.seek(currentPosition);
       parseAndUpdateStrip(line, stripList , 0);
     } 
     else if (line.startsWith("PAUSE")) 
@@ -323,7 +326,7 @@ void playAnimation(String filename , int pinNum)
     {
       int dividerPos = line.indexOf('|');
       int customDuration = line.substring(0, dividerPos).toInt();
-      parseAndUpdateStrip(line.substring(dividerPos + 1), stripList , 0);
+      parseAndUpdateStrip(line.substring(dividerPos + 1), stripList , 0 );
       delay(customDuration);
     } 
     else if (line.indexOf('~') != -1)
@@ -429,15 +432,12 @@ void parseAndUpdateStrip(String line, std::list<ledStripInfo *> &stripList , int
         float divideRatioValue = 0;
         if(costumDuration)
         { 
-          Serial.println("IF: ");
           divideRatioValue = ((float)getBrightnessValue)/costumDuration;   //costumDuration
         }
         else
         { 
-          Serial.println("ELSE: ");
           divideRatioValue = ((float)getBrightnessValue)/100;
         }
-        Serial.println(costumDuration);
         unsigned long startTime;
         unsigned long measureTime = 0;
         startTime = millis();
@@ -464,23 +464,9 @@ void parseAndUpdateStrip(String line, std::list<ledStripInfo *> &stripList , int
       }
       else if(stopCommand)
       {  
-        uint8_t getBrightnessValue = (*it)->strip->getBrightness();
-        Serial.println(getBrightnessValue);
-        while(1)
+        for (std::list<ledStripInfo *>::iterator it = stripList.begin(); it != stripList.end(); it++) 
         {
-          stopCommand = false;
-          for (it = stripList.begin(); it != stripList.end(); it++)
-          {
-            (*it)->strip->setBrightness(getBrightnessValue);
-          }
-          showingStrips(*it);
-          delay(1000);
-          for (it = stripList.begin(); it != stripList.end(); it++)
-          {
-            (*it)->strip->setBrightness(1);
-          }
-          showingStrips(*it);
-          delay(1000);
+          (*it)->strip->clear();
         }
       }
       else
@@ -491,8 +477,11 @@ void parseAndUpdateStrip(String line, std::list<ledStripInfo *> &stripList , int
     }
   }
 showStrip:
-  
   showingStrips(*it);
+  if(stopCommand)
+  {
+    delay(500);
+  }
   it = stripList.begin();
 }
 
