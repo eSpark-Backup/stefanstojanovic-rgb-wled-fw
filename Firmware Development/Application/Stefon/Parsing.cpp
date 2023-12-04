@@ -1,8 +1,9 @@
 #include "Parsing.hpp"
+#include "debugprint.hpp"
 #include <list>
 
-std::list<int> pinsList;
 
+std::list<int> pinsList;
 ledStripMap stripTypes[] = {
   { "RGB", NEO_RGB },
   { "RBG", NEO_RBG },
@@ -35,6 +36,9 @@ ledStripMap stripTypes[] = {
   { "BGWR", NEO_BGWR },
   { "BGRW", NEO_BGRW }
 };
+
+
+static DebugPrint& debugPrint = DebugPrint::getInstance();
 
 bool parseConfigLine(String line, char &symbol, uint8_t &r, uint8_t &g, uint8_t &b , uint8_t &w) 
 {
@@ -125,7 +129,7 @@ void parseSection(String sectionName, File configFile, std::list<ledStripInfo*>&
       // Parse debug information
       if (line.startsWith("debug="))
       {
-        parseCurrent.debug = line.substring(line.indexOf("=") + 1).toInt();
+        debugPrint.debugValue = line.substring(line.indexOf("=") + 1).toInt();
         // You can store the debug value or use it as needed
       }
     }

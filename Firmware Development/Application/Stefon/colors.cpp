@@ -1,11 +1,14 @@
 #include "colors.hpp"
+#include "debugprint.hpp"
 #include "parsing.hpp"
 #include <FS.h>
 #include <SPIFFS.h>
-#include "debugprint.hpp"
+
 
 ColorInstance colorInstance;
 ColorConfig config;
+
+static DebugPrint& debugPrint = DebugPrint::getInstance();
 
 void ifWhite(struct ColorInstance &colorinst, int i)
 {
@@ -44,7 +47,7 @@ void LineCounter(const char *filePath , int &lineCounter)
 { 
   if (!SPIFFS.begin(true)) 
   {
-    debugPrint("Failed to mount file system");
+    debugPrint.debugPrint("Failed to mount file system");
     return;
   }
   
@@ -52,7 +55,7 @@ void LineCounter(const char *filePath , int &lineCounter)
   
   if (!configFile) 
   {
-    debugPrint("Failed to open config file");
+    debugPrint.debugPrint("Failed to open config file");
     return;
   }
 

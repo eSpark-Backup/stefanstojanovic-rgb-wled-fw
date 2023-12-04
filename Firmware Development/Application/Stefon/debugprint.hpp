@@ -3,17 +3,15 @@
 #include <SPIFFS.h>
 #include <Adafruit_NeoPixel.h>
 #include <list>
-#include "Parsing.hpp"
-#include "colors.hpp"
 #include "tasks.hpp"
 
-// class DebugPrint
-// {
-//    public:
-//     void debugPrint(String DebugText);
-// bool isDebugPrint();
-// };
+class DebugPrint
+{  
+   public:
+    uint8_t debugValue = 0;
+    static DebugPrint& getInstance();  // Singleton accessor
+    void debugPrint(String DebugText);
+};
 
-void debugPrint(String DebugText);
-bool isDebugPrint();
+
 

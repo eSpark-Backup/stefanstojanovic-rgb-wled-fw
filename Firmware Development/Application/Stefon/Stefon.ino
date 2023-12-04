@@ -19,13 +19,14 @@ extern ColorConfig config;
 extern ColorInstance colorInstance;
 std::list<ledStripInfo *>::iterator it;
 File configFile;
+static DebugPrint& debugPrint = DebugPrint::getInstance();
 
 void parseAndPrintConfig(const char *filePath) 
 { 
 
   if (!SPIFFS.begin(true)) 
   {
-    debugPrint("Failed to mount file system");
+    debugPrint.debugPrint("Failed to mount file system");
     return;
   }
 
@@ -117,7 +118,7 @@ void CheckingPinInterrupt(void *pvParameters)
               if(!checked)
               {
                 checked = 1;
-                debugPrint("if(pinNum == 4 && !checked)");
+                debugPrint.debugPrint("if(pinNum == 4 && !checked)");
                   // Create an instance of the struct and populate its fields
                 Task3Parameters params = {pinNum, &checked};
                 xTaskCreatePinnedToCore(HandlingPinInterrupt, "Task3" ,  10000 ,   (void*)&params ,   2    , &Task3,  1);
@@ -178,7 +179,7 @@ void playAnimation(String filename , int pinNum)
   } 
   else 
   {
-    debugPrint("Succesfully opened animation file: " + filename);
+    debugPrint.debugPrint("Succesfully opened animation file: " + filename);
   }
   while (file.available()) 
   { 

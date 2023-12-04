@@ -1,10 +1,10 @@
 #pragma once
-
+#include "parsing.hpp"
 #include <FS.h>
 #include <SPIFFS.h>
 #include <Adafruit_NeoPixel.h>
 #include <list>
-#include "Parsing.hpp"
+
 struct ColorConfig {
   char symbol;
   uint8_t r, g, b, w;
@@ -16,6 +16,7 @@ struct ColorInstance{
 };
 
 // Define a struct to store the parsed configuration
+
 
 void ifWhite(struct ColorInstance &colorinst, int i);
 void setPixelColorFromCode(int index, char code, struct ColorInstance &colorinst, ledStripInfo *strip, String line);
