@@ -1,21 +1,16 @@
 #include "debugprint.hpp"
 
-// bool DebugPrint::isDebugPrint()
-// {
-//     if(1 == parseCurrent.debug)
-//     {
-//       return true;
-//     }
-//     else
-//     {
-//       return false;
-//     }
-// }
-namespace {
-    DebugPrint* debugPrintInstance = new DebugPrint();
+namespace 
+{
+    DebugPrint* debugPrintInstance = nullptr;
 }
 
-DebugPrint& DebugPrint::getInstance() {
+DebugPrint& DebugPrint::getInstance() 
+{
+    if(nullptr == debugPrintInstance)
+    {
+      debugPrintInstance = new DebugPrint();
+    }
     return *debugPrintInstance;
 }
 
