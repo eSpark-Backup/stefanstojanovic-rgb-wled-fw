@@ -1,12 +1,8 @@
 #include "colors.hpp"
 #include "debugprint.hpp"
-#include "parsing.hpp"
+// #include "parsing.hpp"
 #include <FS.h>
 #include <SPIFFS.h>
-
-
-ColorInstance colorInstance;
-ColorConfig config;
 
 static DebugPrint& debugPrint = DebugPrint::getInstance();
 namespace 
