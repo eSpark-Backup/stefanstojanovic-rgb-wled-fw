@@ -1,10 +1,7 @@
 #include "Parsing.h"
 #include <list>
 
-
-
 std::list<int> pinsList;
-
 
 ledStripMap stripTypes[] = {
   { "RGB", NEO_RGB },

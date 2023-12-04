@@ -3,8 +3,8 @@
 #include <Adafruit_NeoPixel.h>
 #include <list>
 #include "Parsing.h"
-#include "StripColors.hpp"
-
+#include "strips.hpp"
+#include "tasks.hpp"
 TaskHandle_t Task1;
 TaskHandle_t Task2;
 TaskHandle_t Task3;
@@ -15,6 +15,7 @@ int NUM_LEDS = 0;
 std::list<ledStripInfo *> stripList;
 
 int lineCounter = 0;
+
 struct ColorInstance{ 
   ColorConfig *colorArray;
   int colorCount = 0;
@@ -22,10 +23,7 @@ struct ColorInstance{
 
 ColorInstance colorInstance;
 ColorConfig config;
-extern std::list<int> pinsList;
 extern parseFileParameters parseCurrent;
-std::list<String> recordingAni;
-std::list<String>::iterator recordAniItr;
 std::list<ledStripInfo *>::iterator it;
 File configFile;
 
@@ -36,6 +34,8 @@ void storeColorConfig(struct ColorInstance &colorInst , ColorConfig config)
   colorInst.colorArray[colorInst.colorCount].g = config.g;
   colorInst.colorArray[colorInst.colorCount].b = config.b;
   colorInst.colorArray[colorInst.colorCount].w = config.w;
+  delay(10);
+  colorInstance.colorCount++;
 }
 
 void LineCounter(const char *filePath)  
@@ -99,135 +99,101 @@ void parseAndPrintConfig(const char *filePath)
       if(parseConfigLine(line, config.symbol, config.r, config.g, config.b , config.w))
       {
         storeColorConfig(colorInstance , config);
-        delay(10);
-        colorInstance.colorCount++;
-
       }
     }
   }
   configFile.close();
 } 
 
-int PinGetPullDown()
-{ 
-  for (std::list<int>::iterator it = pinsList.begin(); !(it == pinsList.end()); ++it)
-  { 
-    int readPinValueReturn = digitalRead(*it);
-    if(0 == readPinValueReturn)
-    { 
-      return *it;
-    }
-  }
-   return 0;
-}
-struct Task3Parameters {
-  int pinNum;
-  bool whenTrue;
-};
 void setup() 
 { 
-  Serial.begin(115200);
-  LineCounter("/colortable.conf");
-  colorInstance.colorArray = new ColorConfig[lineCounter];
-  parseAndPrintConfig("/colortable.conf");
-  if (SPIFFS.begin()) 
-  { 
-    File configFile = SPIFFS.open("/config.conf", "r");
-    if (configFile) 
-    {
+      Serial.begin(115200);
+      SPIFFS.begin();
+      LineCounter("/colortable.conf");
+      colorInstance.colorArray = new ColorConfig[lineCounter];
+      parseAndPrintConfig("/colortable.conf");
+      File configFile = SPIFFS.open("/config.conf", "r");
       parseSection("", configFile, stripList);  // Pass an empty section name to stat
       if(1 == parseCurrent.debug)
       {
         debugMode = true;
       }
-    } 
-    else 
-    {
-      debugPrint("Failed to open config file");
-    }
-  } 
-  else 
-  {
-    debugPrint("Failed to mount SPIFFS");
-  }
-  // int sizee = pinsList.size();
-  // Serial.print("Size of the List: ");
-  // Serial.println(sizee);
-  // for (int i = 0; i<lineCounter ; i++)
-  // {
-  // printf("symbol %c color combination %d, %d, %d, %d\n " , colorInstance.colorArray[i].symbol , colorInstance.colorArray[i].r , colorInstance.colorArray[i].g , colorInstance.colorArray[i].b , colorInstance.colorArray[i].w);
-  // }
-    // Initialize semaphore
 
-  xTaskCreatePinnedToCore(Task1code, "Task1" ,  10000 ,   NULL        ,    1      , &Task1,     1);    
-      //                     func       name    stack    parameters     task          task       core of the task
-     //                                         Size     of the task    pariority     handler
-  
-  xTaskCreatePinnedToCore(Task2code, "Task2" ,  10000 ,   NULL        ,    3     , &Task2,     1);
+      // for (int i = 0; i<lineCounter ; i++)
+      // {
+      // printf("symbol %c color combination %d, %d, %d, %d\n " , colorInstance.colorArray[i].symbol , colorInstance.colorArray[i].r , colorInstance.colorArray[i].g , colorInstance.colorArray[i].b , colorInstance.colorArray[i].w);
+      // }
+        // Initialize semaphore
+
+      xTaskCreatePinnedToCore(PlayingNormalRoutine, "Task1" ,  10000 ,   NULL        ,    1      , &Task1,     1);    
+          //                     func       name    stack    parameters     task          task       core of the task
+        //                                         Size     of the task    pariority     handler
+      
+      xTaskCreatePinnedToCore(CheckingPinInterrupt, "Task2" ,  10000 ,   NULL        ,    3     , &Task2,     1);
 
 }
 
-void debugPrint(String DebugText) {
-  if (debugMode) Serial.println(DebugText);
+void debugPrint(String DebugText) 
+{
+   if (debugMode) Serial.println(DebugText);
 }
 
 void clearingStrips(ledStripInfo *strip)
 {
-  for (it = stripList.begin(); it != stripList.end(); it++) 
-  {
-    (*it)->strip->clear();
-    (*it)->strip->show();
-  }
+    for (it = stripList.begin(); it != stripList.end(); it++) 
+    {
+        (*it)->strip->clear();
+        (*it)->strip->show();
+    }
 }
 
-void Task1code(void *pvParameters)
+void PlayingNormalRoutine(void *pvParameters)
 {
-  String currentAnimationFile = "/startup.ani";
-  while (1)
-  { 
-    if (nextAnimationFile != "")
-    {
-      currentAnimationFile = nextAnimationFile;
-      nextAnimationFile = "";
-    }
-    playAnimation(currentAnimationFile , -1);
-    delay(100);
-  }
-}
-bool whenTrue = false;
-int checked = 0;
-void Task2code(void *pvParameters)
-{ 
-  while (1)
-  { 
-    whenTrue = false;
-    int pinNum = PinGetPullDown();
-    if(pinNum)
+    String currentAnimationFile = "/startup.ani";
+    while (1)
     { 
-      clearingStrips(*it);
-      whenTrue = true;
-      BaseType_t taskCreated;
-      TaskHandle_t newTaskHandle;
-      if(!checked)
-      {
-       debugPrint("if(pinNum == 4 && !checked)");
-        // Create an instance of the struct and populate its fields
-       xTaskCreatePinnedToCore(Task3code, "Task3" ,  10000 ,   (void*)&pinNum ,   2    , &Task3,  1);
-       checked = 1;
-      } 
+        if (nextAnimationFile != "")
+        {
+            currentAnimationFile = nextAnimationFile;
+            nextAnimationFile = "";
+        }
+        playAnimation(currentAnimationFile , -1);
+        delay(100);
     }
-    else
-    {
-      whenTrue = false;
-    }
-    delay(10);
-  }
 }
 
-void Task3code(void *pvParameters)
+void CheckingPinInterrupt(void *pvParameters)
 { 
-  int *pPinNum = (int*)pvParameters; // Cast the parameter back to int pointer
-  int pinNum = *pPinNum; // Dereference the pointer to get the value
+    int checked = 0;
+    while (1)
+    { 
+          Serial.print("checked: ");
+          Serial.println(checked);
+          int pinNum = PinGetPullDown();
+          if(pinNum)
+          { 
+              clearingStrips(*it);
+              BaseType_t taskCreated;
+              TaskHandle_t newTaskHandle;
+              if(!checked)
+              {
+                checked = 1;
+                debugPrint("if(pinNum == 4 && !checked)");
+                  // Create an instance of the struct and populate its fields
+                Task3Parameters params = {pinNum, &checked};
+                xTaskCreatePinnedToCore(HandlingPinInterrupt, "Task3" ,  10000 ,   (void*)&params ,   2    , &Task3,  1);
+              
+              } 
+          }
+          delay(10);
+    }
+}
+
+void HandlingPinInterrupt(void *pvParameters)
+{ 
+  Task3Parameters *params = (Task3Parameters *)pvParameters;
+  int pinNum = params->pinNum;
+  int *checked = params->checked;
   char buffer[2];
   itoa(pinNum, buffer, 10);
   String pinNumber = String(buffer);
@@ -236,14 +202,14 @@ void Task3code(void *pvParameters)
   clearingStrips(*it);
   while (1)
   { 
-    playAnimation(currentAnimationFile , pinNum);
-    int readPin = digitalRead(pinNum);
-    if(readPin == 1)
-    { 
-      break;
-    }
+      playAnimation(currentAnimationFile , pinNum);
+      int readPin = digitalRead(pinNum);
+      if(readPin == 1)
+      { 
+          break;
+      }
   }
-  checked = 0;
+  *checked = 0;
   clearingStrips(*it);
   vTaskResume(Task1);
   vTaskDelete(NULL);
@@ -486,8 +452,8 @@ showStrip:
 }
 
 void showingStrips(ledStripInfo *strip)
-{
-  for (it = stripList.begin(); it != stripList.end(); it++) 
+{ 
+  for (std::list<ledStripInfo *>::iterator it = stripList.begin(); it != stripList.end(); it++) 
   {
     (*it)->strip->show();
   }
