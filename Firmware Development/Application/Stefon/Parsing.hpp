@@ -26,3 +26,4 @@ typedef struct {
 
 void parseSection(String sectionName, File configFile, std::list<ledStripInfo *> &stripList);
 uint8_t typeCheck(uint8_t *combination, struct ledStripMap (&stripTypes)[30], const char *getType);
+bool parseConfigLine(String line, char &symbol, uint8_t &r, uint8_t &g, uint8_t &b , uint8_t &w);

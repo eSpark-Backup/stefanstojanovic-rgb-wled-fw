@@ -1,4 +1,4 @@
-#include "Parsing.h"
+#include "Parsing.hpp"
 #include <list>
 
 std::list<int> pinsList;
@@ -35,6 +35,12 @@ ledStripMap stripTypes[] = {
   { "BGWR", NEO_BGWR },
   { "BGRW", NEO_BGRW }
 };
+
+bool parseConfigLine(String line, char &symbol, uint8_t &r, uint8_t &g, uint8_t &b , uint8_t &w) 
+{
+  int count = sscanf(line.c_str(), "%c: %d,%d,%d,%d", &symbol, &r, &g, &b, &w);
+  return (count == 4 || count == 5);
+}
 
 uint8_t typeCheck(uint8_t *combination , struct ledStripMap (&stripTypes)[30] , const char *getType)
 { 
