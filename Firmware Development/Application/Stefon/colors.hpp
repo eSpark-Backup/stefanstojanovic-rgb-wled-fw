@@ -16,9 +16,14 @@ struct ColorInstance{
 };
 
 // Define a struct to store the parsed configuration
-
-
-void ifWhite(struct ColorInstance &colorinst, int i);
-void setPixelColorFromCode(int index, char code, struct ColorInstance &colorinst, ledStripInfo *strip, String line);
-void storeColorConfig(struct ColorInstance &colorInst , ColorConfig config);
-void LineCounter(const char *filePath , int &lineCounter);
+class Colors
+{
+   public:
+      ColorConfig config;
+      ColorInstance colorInstance;
+      static Colors& getInstance();
+      void ifWhite(struct ColorInstance &colorinst, int i);
+      void setPixelColorFromCode(int index, char code, struct ColorInstance &colorinst, ledStripInfo *strip, String line);
+      void storeColorConfig(struct ColorInstance &colorInst , ColorConfig config);
+      void LineCounter(const char *filePath , int &lineCounter);
+};

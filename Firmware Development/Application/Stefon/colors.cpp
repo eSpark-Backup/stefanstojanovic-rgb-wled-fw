@@ -9,8 +9,20 @@ ColorInstance colorInstance;
 ColorConfig config;
 
 static DebugPrint& debugPrint = DebugPrint::getInstance();
+namespace 
+{
+    Colors* colorsInstance = nullptr;
+}
 
-void ifWhite(struct ColorInstance &colorinst, int i)
+Colors& Colors::getInstance() 
+{
+    if(nullptr == colorsInstance)
+    {
+      colorsInstance = new Colors();
+    }
+    return *colorsInstance;
+}
+void Colors::ifWhite(struct ColorInstance &colorinst, int i)
 {
   if(colorinst.colorArray[i].r == 0 && colorinst.colorArray[i].g == 0 && colorinst.colorArray[i].b == 0 && colorinst.colorArray[i].w)
   {
@@ -20,7 +32,7 @@ void ifWhite(struct ColorInstance &colorinst, int i)
   }
 }
 
-void setPixelColorFromCode(int index, char code, struct ColorInstance &colorinst, ledStripInfo *strip, String line) 
+void Colors::setPixelColorFromCode(int index, char code, struct ColorInstance &colorinst, ledStripInfo *strip, String line) 
 {  
   for (int i = 0; i < colorinst.colorCount; i++) 
   { 
@@ -32,7 +44,7 @@ void setPixelColorFromCode(int index, char code, struct ColorInstance &colorinst
     }
   }
 }
-void storeColorConfig(struct ColorInstance &colorInst , ColorConfig config) 
+void Colors::storeColorConfig(struct ColorInstance &colorInst , ColorConfig config) 
 { 
   colorInst.colorArray[colorInst.colorCount].symbol = config.symbol;
   colorInst.colorArray[colorInst.colorCount].r = config.r;
@@ -43,7 +55,7 @@ void storeColorConfig(struct ColorInstance &colorInst , ColorConfig config)
   colorInstance.colorCount++;
 }
 
-void LineCounter(const char *filePath , int &lineCounter)  
+void Colors::LineCounter(const char *filePath , int &lineCounter)  
 { 
   if (!SPIFFS.begin(true)) 
   {

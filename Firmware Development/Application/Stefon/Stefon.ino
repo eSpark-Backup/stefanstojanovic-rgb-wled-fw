@@ -10,16 +10,14 @@
 TaskHandle_t Task1;
 TaskHandle_t Task2;
 TaskHandle_t Task3;
-// bool debugMode = false;
-int aniFileLinecount = 0;
+
 String nextAnimationFile = "";
 int NUM_LEDS = 0;
 std::list<ledStripInfo *> stripList;
-extern ColorConfig config;
-extern ColorInstance colorInstance;
 std::list<ledStripInfo *>::iterator it;
-File configFile;
+
 static DebugPrint& debugPrint = DebugPrint::getInstance();
+static Colors& colors = Colors::getInstance();
 
 void parseAndPrintConfig(const char *filePath) 
 { 
@@ -30,7 +28,7 @@ void parseAndPrintConfig(const char *filePath)
     return;
   }
 
-  configFile = SPIFFS.open(filePath, "r");
+  File configFile = SPIFFS.open(filePath, "r");
 
   if (!configFile) 
   {
@@ -45,9 +43,9 @@ void parseAndPrintConfig(const char *filePath)
     
     if (line.length() > 0) 
     {              
-      if(parseConfigLine(line, config.symbol, config.r, config.g, config.b , config.w))
+      if(parseConfigLine(line, colors.config.symbol, colors.config.r, colors.config.g, colors.config.b , colors.config.w))
       {
-        storeColorConfig(colorInstance , config);
+        colors.storeColorConfig(colors.colorInstance , colors.config);
       }
     }
   }
@@ -59,9 +57,9 @@ void setup()
       Serial.begin(115200);
       SPIFFS.begin();
       int lineCounter = 0;
-      LineCounter("/colortable.conf" , lineCounter);
+      colors.LineCounter("/colortable.conf" , lineCounter);
       Serial.println(lineCounter);
-      colorInstance.colorArray = new ColorConfig[lineCounter];
+      colors.colorInstance.colorArray = new ColorConfig[lineCounter];
       parseAndPrintConfig("/colortable.conf");
       File configFile = SPIFFS.open("/config.conf", "r");
       parseSection("", configFile, stripList);  // Pass an empty section name to stat
@@ -301,7 +299,7 @@ void parseAndUpdateStrip(String line, std::list<ledStripInfo *> &stripList , int
             }
             ledIdx = 0;
           }
-          setPixelColorFromCode(ledIdx, colorCode, colorInstance, *it, line);
+          colors.setPixelColorFromCode(ledIdx, colorCode, colors.colorInstance, *it, line);
           ledIdx++;
         }
         i = dashEnd;
@@ -313,7 +311,7 @@ void parseAndUpdateStrip(String line, std::list<ledStripInfo *> &stripList , int
         {
           for (int j = ledIdx; j < ((*it)->len); j++) 
           {
-            setPixelColorFromCode(j, colorCode, colorInstance, *it, line);
+            colors.setPixelColorFromCode(j, colorCode, colors.colorInstance, *it, line);
           }
           ledIdx = 0;
         }
@@ -377,7 +375,7 @@ void parseAndUpdateStrip(String line, std::list<ledStripInfo *> &stripList , int
       }
       else
       {
-        setPixelColorFromCode(ledIdx, line[i], colorInstance, *it, line);
+        colors.setPixelColorFromCode(ledIdx, line[i], colors.colorInstance, *it, line);
         ledIdx++;
       }
     }
