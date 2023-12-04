@@ -9,3 +9,13 @@ typedef struct
   uint16_t len;
   const char *type;
 } ledStripInfo;
+
+class LedStrip
+{
+   public:
+      // void PlayingNormalRoutine(void *pvParameters); 
+      static LedStrip& getInstance();
+      void clearingStrips(ledStripInfo *strip);
+      void showingStrips(ledStripInfo *strip);
+
+};

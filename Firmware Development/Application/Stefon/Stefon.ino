@@ -18,6 +18,7 @@ std::list<ledStripInfo *>::iterator it;
 
 static DebugPrint& debugPrint = DebugPrint::getInstance();
 static Colors& colors = Colors::getInstance();
+static LedStrip& ledStrip = LedStrip::getInstance();
 
 void parseAndPrintConfig(const char *filePath) 
 { 
@@ -78,14 +79,14 @@ void setup()
 
 }
 
-void clearingStrips(ledStripInfo *strip)
-{
-    for (it = stripList.begin(); it != stripList.end(); it++) 
-    {
-        (*it)->strip->clear();
-        (*it)->strip->show();
-    }
-}
+// void clearingStrips(ledStripInfo *strip)
+// {
+//     for (it = stripList.begin(); it != stripList.end(); it++) 
+//     {
+//         (*it)->strip->clear();
+//         (*it)->strip->show();
+//     }
+// }
 
 void PlayingNormalRoutine(void *pvParameters)
 {
@@ -110,7 +111,7 @@ void CheckingPinInterrupt(void *pvParameters)
           int pinNum = PinGetPullDown();
           if(pinNum)
           { 
-              clearingStrips(*it);
+              ledStrip.clearingStrips(*it);
               BaseType_t taskCreated;
               TaskHandle_t newTaskHandle;
               if(!checked)
@@ -137,7 +138,7 @@ void HandlingPinInterrupt(void *pvParameters)
   String pinNumber = String(buffer);
   String currentAnimationFile = "/PIN" + pinNumber + ".ani";
   vTaskSuspend(Task1);
-  clearingStrips(*it);
+  ledStrip.clearingStrips(*it);
   while (1)
   { 
       playAnimation(currentAnimationFile , pinNum);
@@ -148,22 +149,14 @@ void HandlingPinInterrupt(void *pvParameters)
       }
   }
   *checked = 0;
-  clearingStrips(*it);
+  ledStrip.clearingStrips(*it);
   vTaskResume(Task1);
   vTaskDelete(NULL);
 }
 
 void loop() 
 { 
- 
   delay(10);
-  // Serial.println(xPortGetCoreID());
-  // if (nextAnimationFile != "") 
-  // { 
-  //   currentAnimationFile = nextAnimationFile;
-  //   nextAnimationFile = "";
-  // }
-  // playAnimation(currentAnimationFile);
 }
 
 bool ifDelta = false;
@@ -352,7 +345,7 @@ void parseAndUpdateStrip(String line, std::list<ledStripInfo *> &stripList , int
           {
            (*it)->strip->setBrightness(i);
           }
-          showingStrips(*it);
+          ledStrip.showingStrips(*it);
           measureTime = millis() - startTime;
           i = getBrightnessValue - (divideRatioValue * measureTime);
         }
@@ -381,7 +374,7 @@ void parseAndUpdateStrip(String line, std::list<ledStripInfo *> &stripList , int
     }
   }
 showStrip:
-  showingStrips(*it);
+  ledStrip.showingStrips(*it);
   if(stopCommand)
   {
     delay(500);
@@ -389,11 +382,11 @@ showStrip:
   it = stripList.begin();
 }
 
-void showingStrips(ledStripInfo *strip)
-{ 
-  for (std::list<ledStripInfo *>::iterator it = stripList.begin(); it != stripList.end(); it++) 
-  {
-    (*it)->strip->show();
-  }
-}
+// void showingStrips(ledStripInfo *strip)
+// { 
+//   for (std::list<ledStripInfo *>::iterator it = stripList.begin(); it != stripList.end(); it++) 
+//   {
+//     (*it)->strip->show();
+//   }
+// }
 
