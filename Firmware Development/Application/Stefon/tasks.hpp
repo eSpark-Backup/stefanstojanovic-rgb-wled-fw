@@ -3,12 +3,19 @@
 #include <SPIFFS.h>
 #include <Adafruit_NeoPixel.h>
 #include <list>
-#include "Parsing.hpp"
-#include "colors.hpp"
 
-typedef struct {
+typedef struct 
+{
   int pinNum;
   int *checked;
+
 } Task3Parameters;
 
-int PinGetPullDown();
+typedef struct 
+{
+  Adafruit_NeoPixel *strip;
+  uint16_t len;
+  const char *type;
+} ledStripInfo;
+
+// int PinGetPullDown();

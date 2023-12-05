@@ -1,7 +1,7 @@
 #include "Parsing.hpp"
 #include "debugprint.hpp"
 #include <list>
-
+#include "colors.hpp"
 
 std::list<int> pinsList;
 ledStripMap stripTypes[] = {
@@ -39,6 +39,40 @@ ledStripMap stripTypes[] = {
 
 
 static DebugPrint& debugPrint = DebugPrint::getInstance();
+static Colors& colors = Colors::getInstance();
+
+void parseAndPrintConfig(const char *filePath) 
+{ 
+
+  if (!SPIFFS.begin(true)) 
+  {
+    debugPrint.debugPrint("Failed to mount file system");
+    return;
+  }
+
+  File configFile = SPIFFS.open(filePath, "r");
+
+  if (!configFile) 
+  {
+    Serial.println("Failed to open config file");
+    return;
+  }
+
+  // Parse and print the configuration
+  while (configFile.available()) 
+  { 
+    String line = configFile.readStringUntil('\n');
+    
+    if (line.length() > 0) 
+    {              
+      if(parseConfigLine(line, colors.config.symbol, colors.config.r, colors.config.g, colors.config.b , colors.config.w))
+      {
+        colors.storeColorConfig(colors.colorInstance , colors.config);
+      }
+    }
+  }
+  configFile.close();
+} 
 
 bool parseConfigLine(String line, char &symbol, uint8_t &r, uint8_t &g, uint8_t &b , uint8_t &w) 
 {
