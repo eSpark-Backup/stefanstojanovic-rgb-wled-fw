@@ -223,7 +223,7 @@ void LedStrip::parseAndUpdateStrip(String line, std::list<ledStripInfo *> &strip
   bool stopCommand = false;
   if(line == "STOP")
   {
-    stopCommand = true;
+     stopCommand = true;
   }
    
   it = stripList.begin();  // YAHAN....

@@ -20,6 +20,7 @@
 static DebugPrint& debugPrint = DebugPrint::getInstance();
 static Colors& colors = Colors::getInstance();
 static LedStrip& ledStrip = LedStrip::getInstance();
+static Parsing& parsing = Parsing::getInstance();
 
 void setup() 
 { 
@@ -29,9 +30,9 @@ void setup()
       colors.LineCounter("/colortable.conf" , lineCounter);
       Serial.println(lineCounter);
       colors.colorInstance.colorArray = new ColorConfig[lineCounter];
-      parseAndPrintConfig("/colortable.conf");
+      parsing.parseAndPrintConfig("/colortable.conf");
       File configFile = SPIFFS.open("/config.conf", "r");
-      parseSection("", configFile, ledStrip.stripList);  // Pass an empty section name to stat
+      parsing.parseSection("", configFile, ledStrip.stripList);  // Pass an empty section name to stat
 
       // for (int i = 0; i<lineCounter ; i++)
       // {

@@ -38,12 +38,24 @@ ledStripMap stripTypes[] = {
   { "BGRW", NEO_BGRW }
 };
 
+namespace 
+{
+    Parsing* parsingInstance = nullptr;
+}
 
+Parsing& Parsing::getInstance() 
+{
+    if(nullptr == parsingInstance)
+    {
+        parsingInstance = new Parsing();
+    }
+    return *parsingInstance;
+}
 static DebugPrint& debugPrint = DebugPrint::getInstance();
 static Colors& colors = Colors::getInstance();
 static LedStrip& ledStrip = LedStrip::getInstance();
 
-void parseAndPrintConfig(const char *filePath) 
+void Parsing::parseAndPrintConfig(const char *filePath) 
 { 
 
   if (!SPIFFS.begin(true)) 
@@ -76,13 +88,13 @@ void parseAndPrintConfig(const char *filePath)
   configFile.close();
 } 
 
-bool parseConfigLine(String line, char &symbol, uint8_t &r, uint8_t &g, uint8_t &b , uint8_t &w) 
+bool Parsing::parseConfigLine(String line, char &symbol, uint8_t &r, uint8_t &g, uint8_t &b , uint8_t &w) 
 {
   int count = sscanf(line.c_str(), "%c: %d,%d,%d,%d", &symbol, &r, &g, &b, &w);
   return (count == 4 || count == 5);
 }
 
-uint8_t typeCheck(uint8_t *combination , struct ledStripMap (&stripTypes)[30] , const char *getType)
+uint8_t Parsing::typeCheck(uint8_t *combination , struct ledStripMap (&stripTypes)[30] , const char *getType)
 { 
   ledStripMap ifNotGetAnyValue;
   for (ledStripMap typ : stripTypes) 
@@ -101,14 +113,16 @@ uint8_t typeCheck(uint8_t *combination , struct ledStripMap (&stripTypes)[30] , 
     return *combination;
   }
 }
+
 parseFileParameters parseCurrent;
-void parseSection(String sectionName, File configFile, std::list<ledStripInfo*>& stripList) 
+
+void Parsing::parseSection(String sectionName, File configFile, std::list<ledStripInfo*>& stripList) 
 {
   while (configFile.available()) 
   { 
     String line = configFile.readStringUntil('\n');
     line.trim();
-
+    Serial.println(line);
     if (line.startsWith("#")) 
     {
       // Skip comments

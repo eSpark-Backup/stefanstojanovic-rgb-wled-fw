@@ -39,11 +39,11 @@ class LedStrip
             
             xTaskCreatePinnedToCore(CheckingPinInterrupt, "Task2" ,  10000 ,   NULL        ,    3     , &Task2,     1);
       }
-
+      
+      static LedStrip& getInstance();
       int PinGetPullDown();
       void playAnimation(String filename , int pinNum); 
       void parseAndUpdateStrip(String line, std::list<ledStripInfo *> &stripList , int costumDuration);
-      static LedStrip& getInstance();
       void clearingStrips(ledStripInfo *strip);
       void showingStrips(ledStripInfo *strip);
 

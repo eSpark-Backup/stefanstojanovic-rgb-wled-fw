@@ -5,6 +5,7 @@
 #include <SPIFFS.h>
 
 static DebugPrint& debugPrint = DebugPrint::getInstance();
+static Parsing& parsing = Parsing::getInstance();
 namespace 
 {
     Colors* colorsInstance = nullptr;
@@ -74,7 +75,7 @@ void Colors::LineCounter(const char *filePath , int &lineCounter)
     
     if (line.length() > 0) 
     {              
-      if(parseConfigLine(line, config.symbol, config.r, config.g, config.b , config.w))
+      if(parsing.parseConfigLine(line, config.symbol, config.r, config.g, config.b , config.w))
       {
         lineCounter++;
       }
