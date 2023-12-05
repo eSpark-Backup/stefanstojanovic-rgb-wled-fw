@@ -3,7 +3,9 @@
 #include <SPIFFS.h>
 #include <Adafruit_NeoPixel.h>
 #include <list>
+#include <mutex>
 #include "tasks.hpp"
+
 // typedef struct 
 // {
 //   Adafruit_NeoPixel *strip;
@@ -13,7 +15,8 @@
 
 class LedStrip
 {
-   private:
+    private:
+    
       TaskHandle_t Task1;
       TaskHandle_t Task2; 
       TaskHandle_t Task3;
@@ -25,7 +28,6 @@ class LedStrip
 
       bool ifDelta = false;
       String nextAnimationFile = "";
-      int NUM_LEDS = 0;
       std::list<ledStripInfo *> stripList;
       std::list<ledStripInfo *>::iterator it;
       

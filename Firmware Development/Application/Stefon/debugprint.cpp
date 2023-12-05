@@ -9,7 +9,7 @@ DebugPrint& DebugPrint::getInstance()
 {
     if(nullptr == debugPrintInstance)
     {
-      debugPrintInstance = new DebugPrint();
+        debugPrintInstance = new DebugPrint();
     }
     return *debugPrintInstance;
 }

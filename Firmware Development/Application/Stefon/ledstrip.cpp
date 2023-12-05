@@ -53,40 +53,47 @@ void LedStrip::clearingStrips(ledStripInfo *strip)
 }
 
 void LedStrip::PlayingNormalRoutine(void *pvParameters)
-{
+{   
+    Serial.println("Task1 Created");
     LedStrip* instance = static_cast<LedStrip*>(pvParameters);
     String currentAnimationFile = "/startup.ani";
     while (1)
     { 
-        if (instance->nextAnimationFile != "")
-        {
-            currentAnimationFile = instance->nextAnimationFile;
-            instance->nextAnimationFile = "";
-        }
+      
+//            if (instance->nextAnimationFile != "")
+//            {                
+//                currentAnimationFile = instance->nextAnimationFile;
+//                instance->nextAnimationFile = "";
+//            }
+     
         instance->playAnimation(currentAnimationFile, -1);
+
         delay(100);
     }
 }
 
 void LedStrip::CheckingPinInterrupt(void *pvParameters)
-{ 
+{   
+    Serial.println("Task2 Created");
     LedStrip* instance = static_cast<LedStrip*>(pvParameters);
     int checked = 0;
     while (1)
     { 
         int pinNum = instance->PinGetPullDown();
+   
         if(pinNum)
-        { 
-            instance->clearingStrips(nullptr);  // Pass nullptr or the appropriate ledStripInfo pointer
+        {   
+            // instance->clearingStrips(nullptr);  // Pass nullptr or the appropriate ledStripInfo pointer
             BaseType_t taskCreated;
             TaskHandle_t newTaskHandle;
             if(!checked)
-            {
+            {     
                 checked = 1;
                 debugPrint.debugPrint("if(pinNum == 4 && !checked)");
                 // Create an instance of the struct and populate its fields
                 Task3Parameters params = {pinNum, &checked};
                 xTaskCreatePinnedToCore(HandlingPinInterrupt, "Task3", 10000, (void*)&params, 2, &instance->Task3, 1);
+
             } 
         }
         delay(10);
@@ -94,7 +101,10 @@ void LedStrip::CheckingPinInterrupt(void *pvParameters)
 }
 
 void LedStrip::HandlingPinInterrupt(void *pvParameters)
-{ 
+{   
+    // Serial.println("Stucking While");
+    // while(1){}
+    Serial.println("Task3 Created");
     LedStrip* instance = static_cast<LedStrip*>(pvParameters);
     Task3Parameters *params = (Task3Parameters *)pvParameters;
     int pinNum = params->pinNum;
@@ -104,24 +114,25 @@ void LedStrip::HandlingPinInterrupt(void *pvParameters)
     String pinNumber = String(buffer);
     String currentAnimationFile = "/PIN" + pinNumber + ".ani";
     vTaskSuspend(instance->Task1);
-    instance->clearingStrips(nullptr);  // Pass nullptr or the appropriate ledStripInfo pointer
+    // instance->clearingStrips(nullptr);  // Pass nullptr or the appropriate ledStripInfo pointer
     while (1)
     { 
         instance->playAnimation(currentAnimationFile, pinNum);
         int readPin = digitalRead(pinNum);
-        if(readPin == 1)
+        if(1 == readPin)
         { 
             break;
         }
     }
     *checked = 0;
-    instance->clearingStrips(nullptr);  // Pass nullptr or the appropriate ledStripInfo pointer
+    // instance->clearingStrips(nullptr);  // Pass nullptr or the appropriate ledStripInfo pointer
     vTaskResume(instance->Task1);
     vTaskDelete(NULL);
 }
 
 void LedStrip::playAnimation(String filename , int pinNum) 
 {  
+
   File file = SPIFFS.open(filename.c_str());
   size_t currentPosition = 0;
   if (!file) 
@@ -134,85 +145,90 @@ void LedStrip::playAnimation(String filename , int pinNum)
   }
   while (file.available()) 
   { 
-    int readPin;
-    if(pinNum == -1)
-    {
-      readPin == 0;
-    }
-    else
-    {
-      readPin = digitalRead(pinNum);
-    }
-    size_t position = file.position();
-    String line = file.readStringUntil('\n');
-    line.trim();
-    if (!line.startsWith("STOP")) 
-    { 
-      currentPosition = position;
-    }
-    if(readPin == 1)
-    {
-      return;
-    }
-    if (line.startsWith("L:")) 
-    {
-      NUM_LEDS = line.substring(2).toInt();
-      (*it)->strip->updateLength(NUM_LEDS);
-      (*it)->strip->show();  // Update the strip length and clear it
-      continue;
-    }
+        int readPin;
+        if(pinNum == -1)
+        {
+            readPin == 0;
+        }
 
-    if (line.endsWith(".ani")) 
-    {
-      nextAnimationFile = "/" + line;
-      break;  // Exit out of the while loop to let the main loop handle the file switch
-    }
-    
-    if (line.startsWith("STOP")) 
-    { 
-      file.seek(currentPosition);
-      parseAndUpdateStrip(line, stripList , 0);
-    } 
-    else if (line.startsWith("PAUSE")) 
-    {
-      int pauseDuration = line.substring(6).toInt();
-      delay(pauseDuration);
-      continue;
-    } 
-    else if (line.indexOf('|') != -1) 
-    {
-      int dividerPos = line.indexOf('|');
-      int customDuration = line.substring(0, dividerPos).toInt();
-      parseAndUpdateStrip(line.substring(dividerPos + 1), stripList , 0 );
-      delay(customDuration);
-    } 
-    else if (line.indexOf('~') != -1)
-    {
-      int dividerPos = line.indexOf('~');
-      int customDuration = line.substring(0, dividerPos).toInt();
-      ifDelta = true;
-      parseAndUpdateStrip(line.substring(dividerPos + 1), stripList, customDuration);
-      continue;
-    }
-    else 
-    {
-      parseAndUpdateStrip(line, stripList , 0);
-      delay(100);
-    }
+        else
+        {
+            readPin = digitalRead(pinNum);
+        }
+            
+        size_t position = file.position();
+        String line = file.readStringUntil('\n');
+        line.trim();
+        if (!line.startsWith("STOP")) 
+        { 
+            currentPosition = position;
+        }
+        if(readPin == 1)
+        {
+            return;
+        }
+        if (line.startsWith("L:")) 
+        {
+            int numLeds = line.substring(2).toInt();
+            (*it)->strip->updateLength(numLeds);
+            (*it)->strip->show();  // Update the strip length and clear it
+            continue;
+        }
+
+        if (line.endsWith(".ani")) 
+        {
+            nextAnimationFile = "/" + line;
+            break;  // Exit out of the while loop to let the main loop handle the file switch
+        }
+        
+        if (line.startsWith("STOP")) 
+        { 
+            file.seek(currentPosition);
+            parseAndUpdateStrip(line, stripList , 0);
+        } 
+        else if (line.startsWith("PAUSE")) 
+        {
+            int pauseDuration = line.substring(6).toInt();
+            delay(pauseDuration);
+            continue;
+        } 
+        else if (line.indexOf('|') != -1) 
+        {     
+            int dividerPos = line.indexOf('|');
+            int customDuration = line.substring(0, dividerPos).toInt();
+            parseAndUpdateStrip(line.substring(dividerPos + 1), stripList , 0 );
+            delay(customDuration);
+
+        } 
+        else if (line.indexOf('~') != -1)
+        {
+            int dividerPos = line.indexOf('~');
+            int customDuration = line.substring(0, dividerPos).toInt();
+            ifDelta = true;
+            parseAndUpdateStrip(line.substring(dividerPos + 1), stripList, customDuration);
+            continue;
+        }
+        else 
+        {  
+            parseAndUpdateStrip(line, stripList , 0);
+            delay(100);
+        }
   }
   file.close();
 }
 
 void LedStrip::parseAndUpdateStrip(String line, std::list<ledStripInfo *> &stripList , int costumDuration) 
 { 
+
   bool stopCommand = false;
   if(line == "STOP")
   {
     stopCommand = true;
   }
-  it = stripList.begin();
-  int ledIdx = 0;
+   
+  it = stripList.begin();  // YAHAN....
 
+  int ledIdx = 0;
   for (int i = 0; i < line.length(); i++) 
   {
     if (line[i] == ';') 

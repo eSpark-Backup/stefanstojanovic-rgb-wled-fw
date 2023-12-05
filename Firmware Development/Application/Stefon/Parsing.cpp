@@ -2,6 +2,7 @@
 #include "debugprint.hpp"
 #include <list>
 #include "colors.hpp"
+#include "ledstrip.hpp"
 
 std::list<int> pinsList;
 ledStripMap stripTypes[] = {
@@ -40,6 +41,7 @@ ledStripMap stripTypes[] = {
 
 static DebugPrint& debugPrint = DebugPrint::getInstance();
 static Colors& colors = Colors::getInstance();
+static LedStrip& ledStrip = LedStrip::getInstance();
 
 void parseAndPrintConfig(const char *filePath) 
 { 

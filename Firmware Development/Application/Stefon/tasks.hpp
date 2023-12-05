@@ -8,7 +8,7 @@ typedef struct
 {
   int pinNum;
   int *checked;
-
+  
 } Task3Parameters;
 
 typedef struct 
@@ -16,6 +16,7 @@ typedef struct
   Adafruit_NeoPixel *strip;
   uint16_t len;
   const char *type;
+
 } ledStripInfo;
 
 // int PinGetPullDown();
