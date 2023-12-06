@@ -19,6 +19,7 @@ LedStrip& LedStrip::getInstance()
     }
     return *LedStripInstance;
 }
+static LedStrip& ledStrip = LedStrip::getInstance();
 
 extern std::list<int> pinsList;
 
@@ -55,35 +56,34 @@ void LedStrip::clearingStrips(ledStripInfo *strip)
 void LedStrip::PlayingNormalRoutine(void *pvParameters)
 {   
     Serial.println("Task1 Created");
-    LedStrip* instance = static_cast<LedStrip*>(pvParameters);
     String currentAnimationFile = "/startup.ani";
     while (1)
     { 
       
-//            if (instance->nextAnimationFile != "")
-//            {                
-//                currentAnimationFile = instance->nextAnimationFile;
-//                instance->nextAnimationFile = "";
-//            }
-     
-        instance->playAnimation(currentAnimationFile, -1);
+        if (ledStrip.nextAnimationFile != "")
+        {                
+            currentAnimationFile = ledStrip.nextAnimationFile;
+            ledStrip.nextAnimationFile = "";
+        }
+
+        ledStrip.playAnimation(currentAnimationFile, -1);
 
         delay(100);
+
     }
 }
 
 void LedStrip::CheckingPinInterrupt(void *pvParameters)
 {   
     Serial.println("Task2 Created");
-    LedStrip* instance = static_cast<LedStrip*>(pvParameters);
     int checked = 0;
     while (1)
     { 
-        int pinNum = instance->PinGetPullDown();
+        int pinNum = ledStrip.PinGetPullDown();
    
         if(pinNum)
         {   
-            // instance->clearingStrips(nullptr);  // Pass nullptr or the appropriate ledStripInfo pointer
+            ledStrip.clearingStrips(*(ledStrip.it));  // Pass nullptr or the appropriate ledStripInfo pointer
             BaseType_t taskCreated;
             TaskHandle_t newTaskHandle;
             if(!checked)
@@ -92,7 +92,7 @@ void LedStrip::CheckingPinInterrupt(void *pvParameters)
                 debugPrint.debugPrint("if(pinNum == 4 && !checked)");
                 // Create an instance of the struct and populate its fields
                 Task3Parameters params = {pinNum, &checked};
-                xTaskCreatePinnedToCore(HandlingPinInterrupt, "Task3", 10000, (void*)&params, 2, &instance->Task3, 1);
+                xTaskCreatePinnedToCore(HandlingPinInterrupt, "Task3", 10000, (void*)&params, 2, &(ledStrip.Task3), 1);
 
             } 
         }
@@ -102,10 +102,6 @@ void LedStrip::CheckingPinInterrupt(void *pvParameters)
 
 void LedStrip::HandlingPinInterrupt(void *pvParameters)
 {   
-    // Serial.println("Stucking While");
-    // while(1){}
-    Serial.println("Task3 Created");
-    LedStrip* instance = static_cast<LedStrip*>(pvParameters);
     Task3Parameters *params = (Task3Parameters *)pvParameters;
     int pinNum = params->pinNum;
     int *checked = params->checked;
@@ -113,11 +109,11 @@ void LedStrip::HandlingPinInterrupt(void *pvParameters)
     itoa(pinNum, buffer, 10);
     String pinNumber = String(buffer);
     String currentAnimationFile = "/PIN" + pinNumber + ".ani";
-    vTaskSuspend(instance->Task1);
-    // instance->clearingStrips(nullptr);  // Pass nullptr or the appropriate ledStripInfo pointer
+    vTaskSuspend(ledStrip.Task1);
+    ledStrip.clearingStrips(*(ledStrip.it));  // Pass nullptr or the appropriate ledStripInfo pointer
     while (1)
     { 
-        instance->playAnimation(currentAnimationFile, pinNum);
+        ledStrip.playAnimation(currentAnimationFile, pinNum);
         int readPin = digitalRead(pinNum);
         if(1 == readPin)
         { 
@@ -125,8 +121,8 @@ void LedStrip::HandlingPinInterrupt(void *pvParameters)
         }
     }
     *checked = 0;
-    // instance->clearingStrips(nullptr);  // Pass nullptr or the appropriate ledStripInfo pointer
-    vTaskResume(instance->Task1);
+    ledStrip.clearingStrips(*(ledStrip.it));  // Pass nullptr or the appropriate ledStripInfo pointer
+    vTaskResume(ledStrip.Task1);
     vTaskDelete(NULL);
 }
 
@@ -197,6 +193,7 @@ void LedStrip::playAnimation(String filename , int pinNum)
             int dividerPos = line.indexOf('|');
             int customDuration = line.substring(0, dividerPos).toInt();
             parseAndUpdateStrip(line.substring(dividerPos + 1), stripList , 0 );
+
             delay(customDuration);
 
         } 
@@ -219,141 +216,141 @@ void LedStrip::playAnimation(String filename , int pinNum)
 
 void LedStrip::parseAndUpdateStrip(String line, std::list<ledStripInfo *> &stripList , int costumDuration) 
 { 
-
+  
   bool stopCommand = false;
   if(line == "STOP")
   {
      stopCommand = true;
   }
    
-  it = stripList.begin();  // YAHAN....
+
+  it = stripList.begin();   // initializing iterator from 0
+
 
   int ledIdx = 0;
   for (int i = 0; i < line.length(); i++) 
   {
-    if (line[i] == ';') 
-    {
-      ledIdx++;
-      if (ledIdx >= (*it)->len) 
+      if (line[i] == ';') 
       {
-        it++;
-        if (it == stripList.end()) 
+        ledIdx++;
+        if (ledIdx >= (*it)->len) 
         {
-          goto showStrip;
-        }
-        ledIdx = 0;
-      }
-      continue;
-    }
-
-    if (line[i] == '-') 
-    {
-      
-      int dashEnd = line.indexOf('>', i);
-      
-      String repeatValue = line.substring(i + 1, dashEnd);
-      int repeatCount = repeatValue.toInt();
-      char colorCode = line[i - 1];
-
-      if (repeatCount) 
-      {
-        for (int j = 0; j < repeatCount; j++) 
-        {
-          if (ledIdx >= (*it)->len) 
-          {
             it++;
             if (it == stripList.end()) 
             {
               goto showStrip;
             }
             ledIdx = 0;
-          }
-          colors.setPixelColorFromCode(ledIdx, colorCode, colors.colorInstance, *it, line);
-          ledIdx++;
         }
-        i = dashEnd;
+        continue;
+    }
+
+    if (line[i] == '-') 
+    {
+      
+        int dashEnd = line.indexOf('>', i);
         
-      } 
-      else 
-      {
-        for (; it != stripList.end(); it++) 
+        String repeatValue = line.substring(i + 1, dashEnd);
+        int repeatCount = repeatValue.toInt();
+        char colorCode = line[i - 1];
+
+        if (repeatCount) 
         {
-          for (int j = ledIdx; j < ((*it)->len); j++) 
-          {
-            colors.setPixelColorFromCode(j, colorCode, colors.colorInstance, *it, line);
-          }
-          ledIdx = 0;
+            for (int j = 0; j < repeatCount; j++) 
+            {
+                if (ledIdx >= (*it)->len) 
+                {
+                    it++;
+                    if (it == stripList.end()) 
+                    {
+                        goto showStrip;
+                    }
+                    ledIdx = 0;
+                }
+                colors.setPixelColorFromCode(ledIdx, colorCode, colors.colorInstance, *it, line);
+                ledIdx++;
+            }
+            i = dashEnd;
+          
+        } 
+        else 
+        {
+            for (; it != stripList.end(); it++) 
+            {
+                for (int j = ledIdx; j < ((*it)->len); j++) 
+                {
+                    colors.setPixelColorFromCode(j, colorCode, colors.colorInstance, *it, line);
+                }
+                ledIdx = 0;
+            }
+            i = line.length();
         }
-        i = line.length();
-      }
     } 
 
     else 
-    {
-      if (ledIdx >= (*it)->len) 
-      {
-        it++;
-        ledIdx = 0;
-        if (it == stripList.end()) 
-        {
-          break;
+    {    
+        if (ledIdx >= (*it)->len) 
+        {   
+            it++;
+            ledIdx = 0;
+            if (it == stripList.end()) 
+            {
+              break;
+            }
         }
-      }
-      if(ifDelta)
-      { 
-        uint8_t getBrightnessValue = (*it)->strip->getBrightness();
-        float divideRatioValue = 0;
-        if(costumDuration)
+
+        if(ifDelta)
         { 
-          divideRatioValue = ((float)getBrightnessValue)/costumDuration;   //costumDuration
-        }
-        else
-        { 
-          divideRatioValue = ((float)getBrightnessValue)/100;
-        }
-        unsigned long startTime;
-        unsigned long measureTime = 0;
-        startTime = millis();
-        for(float i = getBrightnessValue ; i >= 0;)
-        { 
-          
+          uint8_t getBrightnessValue = (*it)->strip->getBrightness();
+          float divideRatioValue = 0;
+          if(costumDuration)
+          { 
+              divideRatioValue = ((float)getBrightnessValue)/costumDuration;   //costumDuration
+          }
+          else
+          { 
+              divideRatioValue = ((float)getBrightnessValue)/100;
+          }
+          unsigned long startTime;
+          unsigned long measureTime = 0;
+          startTime = millis();
+          for(float i = getBrightnessValue ; i >= 0;)
+          { 
+            
+              for (it = stripList.begin(); it != stripList.end(); it++)
+              {
+                  (*it)->strip->setBrightness(i);
+              }
+              showingStrips(*it);
+              measureTime = millis() - startTime;
+              i = getBrightnessValue - (divideRatioValue * measureTime);
+          }
+          ifDelta = false;
           for (it = stripList.begin(); it != stripList.end(); it++)
           {
-           (*it)->strip->setBrightness(i);
+              (*it)->strip->setBrightness(getBrightnessValue);
           }
-          showingStrips(*it);
-          measureTime = millis() - startTime;
-          i = getBrightnessValue - (divideRatioValue * measureTime);
+          return;
         }
-        // unsigned long endTime = millis();
-        // unsigned long loopTime = endTime - startTime;
-        // Serial.println(loopTime);
-        ifDelta = false;
-        for (it = stripList.begin(); it != stripList.end(); it++)
+        else if(stopCommand)
+        {  
+          for (std::list<ledStripInfo *>::iterator it = stripList.begin(); it != stripList.end(); it++) 
+          {
+              (*it)->strip->clear();
+          }
+        }
+        else
         {
-          (*it)->strip->setBrightness(getBrightnessValue);
+          colors.setPixelColorFromCode(ledIdx, line[i], colors.colorInstance, *it, line);
+          ledIdx++;
         }
-        return;
-      }
-      else if(stopCommand)
-      {  
-        for (std::list<ledStripInfo *>::iterator it = stripList.begin(); it != stripList.end(); it++) 
-        {
-          (*it)->strip->clear();
-        }
-      }
-      else
-      {
-        colors.setPixelColorFromCode(ledIdx, line[i], colors.colorInstance, *it, line);
-        ledIdx++;
-      }
     }
   }
 showStrip:
   showingStrips(*it);
   if(stopCommand)
   {
-    delay(500);
+      delay(500);
   }
   it = stripList.begin();
 }

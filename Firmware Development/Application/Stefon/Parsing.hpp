@@ -21,12 +21,6 @@ struct ledStripMap
   uint8_t value;
 };
 
-// typedef struct 
-// {
-//   Adafruit_NeoPixel *strip;
-//   uint16_t len;
-//   const char *type;
-// } ledStripInfo;
 class Parsing
 {
   public:

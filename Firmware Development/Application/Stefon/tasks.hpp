@@ -19,4 +19,3 @@ typedef struct
 
 } ledStripInfo;
 
-// int PinGetPullDown();

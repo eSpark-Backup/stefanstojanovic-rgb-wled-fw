@@ -6,13 +6,6 @@
 #include <mutex>
 #include "tasks.hpp"
 
-// typedef struct 
-// {
-//   Adafruit_NeoPixel *strip;
-//   uint16_t len;
-//   const char *type;
-// } ledStripInfo;
-
 class LedStrip
 {
     private:
