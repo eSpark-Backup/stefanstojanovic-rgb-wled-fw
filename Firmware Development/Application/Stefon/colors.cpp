@@ -14,7 +14,7 @@ Colors& Colors::getInstance()
 {
     if(nullptr == colorsInstance)
     {
-      colorsInstance = new Colors();
+       colorsInstance = new Colors();
     }
     return *colorsInstance;
 }
@@ -74,10 +74,10 @@ void Colors::LineCounter(const char *filePath , int &lineCounter)
     
     if (line.length() > 0) 
     {              
-      if(parsing.parseConfigLine(line, config.symbol, config.r, config.g, config.b , config.w))
-      {
-          lineCounter++;
-      }
+        if(parsing.parseConfigLine(line, config.symbol, config.r, config.g, config.b , config.w))
+        {
+            lineCounter++;
+        }
     }
   }
   configFile.close();
