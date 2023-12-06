@@ -2,7 +2,7 @@
 #include "debugprint.hpp"
 #include "colors.hpp"
 #include "parsing.hpp"
-#include "inputhandle.hpp"
+
 
 static Parsing& parsing = Parsing::getInstance();
 static DebugPrint& debugPrint = DebugPrint::getInstance();
@@ -26,18 +26,18 @@ static LedStrip& ledStrip = LedStrip::getInstance();
 
 extern std::list<int> pinsList;
 
-// int LedStrip::PinGetPullDown()
-// { 
-//   for (std::list<int>::iterator it = parsing.pinsList.begin(); !(it == parsing.pinsList.end()); ++it)
-//   { 
-//     int readPinValueReturn = digitalRead(*it);
-//     if(0 == readPinValueReturn)
-//     { 
-//       return *it;
-//     }
-//   }
-//    return 0;
-// }
+int LedStrip::PinGetPullDown()
+{ 
+  for (std::list<int>::iterator it = parsing.pinsList.begin(); !(it == parsing.pinsList.end()); ++it)
+  { 
+    int readPinValueReturn = digitalRead(*it);
+    if(0 == readPinValueReturn)
+    { 
+      return *it;
+    }
+  }
+   return 0;
+}
 
 void LedStrip::showingStrips(ledStripInfo *strip)
 { 
@@ -74,38 +74,31 @@ void LedStrip::PlayingNormalRoutine(void *pvParameters)
 
     }
 }
-
-// void LedStrip::CheckingPinInterrupt(void *pvParameters)
-// {   
-//     int checked = 0;
-//     while (1)
-//     { 
-//         int pinNum = ledStrip.PinGetPullDown();
-   
-//         if(pinNum)
-//         {   
-//             ledStrip.clearingStrips(*(ledStrip.it));  // Pass nullptr or the appropriate ledStripInfo pointer
-//             BaseType_t taskCreated;
-//             TaskHandle_t newTaskHandle;
-//             if(!checked)
-//             {     
-//                 checked = 1;
-//                 debugPrint.debugPrint("if(pinNum == 4 && !checked)");
-//                 // Create an instance of the struct and populate its fields
-//                 Task3Parameters params = {pinNum, &checked};
-//                 xTaskCreatePinnedToCore(HandlingPinInterrupt, "Task3", 10000, (void*)&params, 2, &(ledStrip.Task3), 1);
-
-//             } 
-//         }
-//         delay(10);
-//     }
-// }
-
-void LedStrip::HandlingPinInterrupt(void *pvParameters)
+void LedStrip::CheckingPinInterrupt(void *pvParameters)
 {   
-    Task3Parameters *params = (Task3Parameters *)pvParameters;
-    int pinNum = params->pinNum;
-    int *checked = params->checked;
+    int checked = 0;
+    while (1)
+    { 
+        int pinNum = ledStrip.PinGetPullDown();
+   
+        if(pinNum)
+        {   
+            ledStrip.clearingStrips(*(ledStrip.it));  // Pass nullptr or the appropriate ledStripInfo pointer
+
+            checked = 1;
+            debugPrint.debugPrint("if(pinNum == 4 && !checked)");
+            // Create an instance of the struct and populate its fields
+            Task3Parameters params = {pinNum, &checked};
+            ledStrip.HandlingPinInterrupt(params);
+
+          
+        }
+        delay(10);
+    }
+}
+void LedStrip::HandlingPinInterrupt(Task3Parameters task3Params)
+{   
+    int pinNum = task3Params.pinNum ;
     char buffer[2];
     itoa(pinNum, buffer, 10);
     String pinNumber = String(buffer);
@@ -121,10 +114,8 @@ void LedStrip::HandlingPinInterrupt(void *pvParameters)
             break;
         }
     }
-    *checked = 0;
     ledStrip.clearingStrips(*(ledStrip.it));  // Pass nullptr or the appropriate ledStripInfo pointer
     vTaskResume(ledStrip.Task1);
-    vTaskDelete(NULL);
 }
 
 void LedStrip::playAnimation(String filename , int pinNum) 

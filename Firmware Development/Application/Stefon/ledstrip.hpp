@@ -6,6 +6,14 @@
 
 typedef struct 
 {
+  int pinNum;
+  int *checked;
+  
+} Task3Parameters;
+
+
+typedef struct 
+{
   Adafruit_NeoPixel *strip;
   uint16_t len;
   const char *type;
@@ -19,22 +27,23 @@ class LedStrip
       TaskHandle_t Task1;
       bool ifDelta = false;
       static void PlayingNormalRoutine(void* pvParameters);
-
+      TaskHandle_t Task2; 
+      static void CheckingPinInterrupt(void* pvParameters);
     public:
-      TaskHandle_t Task3;
-      static void HandlingPinInterrupt(void* pvParameters);
+      Task3Parameters task3Params;
       String nextAnimationFile = "";
       std::list<ledStripInfo *> stripList;
       std::list<ledStripInfo *>::iterator it;
       
+      void HandlingPinInterrupt(Task3Parameters task3Params);
       void startTasks() 
       {
             xTaskCreatePinnedToCore(PlayingNormalRoutine, "Task1" ,  10000 ,   NULL        ,    1      , &Task1,     1);    
                 //                     func       name    stack    parameters     task          task       core of the task
               //                                         Size     of the task    pariority     handler
-
+            xTaskCreatePinnedToCore(CheckingPinInterrupt, "Task2" ,  10000 ,   NULL        ,    3     , &Task2,     1);
       }
-      
+      int PinGetPullDown();
       static LedStrip& getInstance();
       void playAnimation(String filename , int pinNum); 
       void parseAndUpdateStrip(String line, std::list<ledStripInfo *> &stripList , int costumDuration);

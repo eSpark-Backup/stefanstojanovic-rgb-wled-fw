@@ -6,13 +6,13 @@
 #include "colors.hpp"
 #include "debugprint.hpp"
 #include "ledstrip.hpp"
-#include "inputhandle.hpp"
+
 
 static DebugPrint& debugPrint = DebugPrint::getInstance();
 static Colors& colors = Colors::getInstance();
 static LedStrip& ledStrip = LedStrip::getInstance();
 static Parsing& parsing = Parsing::getInstance();
-static InputHandle& inputHandle = InputHandle::getInstance();
+
 
 void setup() 
 { 
@@ -30,12 +30,11 @@ void setup()
       // printf("symbol %c color combination %d, %d, %d, %d\n " , colorInstance.colorArray[i].symbol , colorInstance.colorArray[i].r , colorInstance.colorArray[i].g , colorInstance.colorArray[i].b , colorInstance.colorArray[i].w);
       // }
        ledStrip.startTasks();
-       inputHandle.startTasks();
 }
 
 void loop() 
 { 
-  // delay(10);
+  delay(10);
 }
 
 
