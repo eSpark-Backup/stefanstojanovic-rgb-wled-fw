@@ -124,7 +124,6 @@ void Parsing::parseSection(String sectionName, File configFile, std::list<ledStr
   { 
     String line = configFile.readStringUntil('\n');
     line.trim();
-    Serial.println(line);
     if (line.startsWith("#")) 
     {
         // Skip comments

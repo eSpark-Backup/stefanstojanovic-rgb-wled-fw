@@ -17,8 +17,11 @@ struct ColorInstance{
 
 // Define a struct to store the parsed configuration
 class Colors
-{
+{  
+   private:
+      
    public:
+      int lineCounter = 0;
       ColorConfig config;
       ColorInstance colorInstance;
       static Colors& getInstance();

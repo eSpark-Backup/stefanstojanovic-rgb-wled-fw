@@ -13,6 +13,7 @@ typedef struct
   int skip = 0;
   int brightness = 0;
   int debug = 0;
+  
 }parseFileParameters;
 
 struct ledStripMap 

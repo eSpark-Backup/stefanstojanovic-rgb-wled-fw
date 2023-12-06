@@ -17,10 +17,8 @@ void setup()
 { 
       Serial.begin(115200);
       SPIFFS.begin();
-      int lineCounter = 0;
-      colors.LineCounter("/colortable.conf" , lineCounter);
-      Serial.println(lineCounter);
-      colors.colorInstance.colorArray = new ColorConfig[lineCounter];
+      colors.LineCounter("/colortable.conf" , colors.lineCounter);
+      colors.colorInstance.colorArray = new ColorConfig[colors.lineCounter];
       parsing.parseAndPrintConfig("/colortable.conf");
       File configFile = SPIFFS.open("/config.conf", "r");
       parsing.parseSection("", configFile, ledStrip.stripList);  // Pass an empty section name to state
@@ -35,7 +33,7 @@ void setup()
 
 void loop() 
 { 
-  delay(10);
+  // delay(10);
 }
 
 

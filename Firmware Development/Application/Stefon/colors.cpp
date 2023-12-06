@@ -77,7 +77,7 @@ void Colors::LineCounter(const char *filePath , int &lineCounter)
     {              
       if(parsing.parseConfigLine(line, config.symbol, config.r, config.g, config.b , config.w))
       {
-        lineCounter++;
+          lineCounter++;
       }
     }
   }

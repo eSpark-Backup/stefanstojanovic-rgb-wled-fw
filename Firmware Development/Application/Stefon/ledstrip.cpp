@@ -55,7 +55,6 @@ void LedStrip::clearingStrips(ledStripInfo *strip)
 
 void LedStrip::PlayingNormalRoutine(void *pvParameters)
 {   
-    Serial.println("Task1 Created");
     String currentAnimationFile = "/startup.ani";
     while (1)
     { 
@@ -75,7 +74,6 @@ void LedStrip::PlayingNormalRoutine(void *pvParameters)
 
 void LedStrip::CheckingPinInterrupt(void *pvParameters)
 {   
-    Serial.println("Task2 Created");
     int checked = 0;
     while (1)
     { 
