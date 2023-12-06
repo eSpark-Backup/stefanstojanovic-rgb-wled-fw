@@ -1,7 +1,9 @@
 #include "ledstrip.hpp"
 #include "debugprint.hpp"
 #include "colors.hpp"
+#include "parsing.hpp"
 
+static Parsing& parsing = Parsing::getInstance();
 static DebugPrint& debugPrint = DebugPrint::getInstance();
 static Colors& colors = Colors::getInstance();
 
@@ -25,7 +27,7 @@ extern std::list<int> pinsList;
 
 int LedStrip::PinGetPullDown()
 { 
-  for (std::list<int>::iterator it = pinsList.begin(); !(it == pinsList.end()); ++it)
+  for (std::list<int>::iterator it = parsing.pinsList.begin(); !(it == parsing.pinsList.end()); ++it)
   { 
     int readPinValueReturn = digitalRead(*it);
     if(0 == readPinValueReturn)

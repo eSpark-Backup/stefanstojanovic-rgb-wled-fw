@@ -4,7 +4,6 @@
 #include <Adafruit_NeoPixel.h>
 #include <list>
 #include "ledstrip.hpp"
-#include "tasks.hpp"
 
 typedef struct
 {
@@ -25,6 +24,7 @@ struct ledStripMap
 class Parsing
 {
   public:
+    std::list<int> pinsList;
     static Parsing& getInstance();
     void parseAndPrintConfig(const char *filePath) ;
     void parseSection(String sectionName, File configFile, std::list<ledStripInfo *> &stripList);

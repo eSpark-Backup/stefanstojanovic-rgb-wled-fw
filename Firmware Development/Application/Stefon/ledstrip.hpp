@@ -3,8 +3,21 @@
 #include <SPIFFS.h>
 #include <Adafruit_NeoPixel.h>
 #include <list>
-#include <mutex>
-#include "tasks.hpp"
+
+typedef struct 
+{
+  int pinNum;
+  int *checked;
+  
+} Task3Parameters;
+
+typedef struct 
+{
+  Adafruit_NeoPixel *strip;
+  uint16_t len;
+  const char *type;
+
+} ledStripInfo;
 
 class LedStrip
 {

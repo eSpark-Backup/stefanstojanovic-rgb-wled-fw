@@ -4,8 +4,6 @@
 #include "colors.hpp"
 #include "ledstrip.hpp"
 
-std::list<int> pinsList;
-
 ledStripMap stripTypes[] = {
   { "RGB", NEO_RGB },
   { "RBG", NEO_RBG },

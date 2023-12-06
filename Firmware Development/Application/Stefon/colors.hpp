@@ -4,7 +4,6 @@
 #include <SPIFFS.h>
 #include <Adafruit_NeoPixel.h>
 #include <list>
-#include "tasks.hpp"
 struct ColorConfig {
   char symbol;
   uint8_t r, g, b, w;
