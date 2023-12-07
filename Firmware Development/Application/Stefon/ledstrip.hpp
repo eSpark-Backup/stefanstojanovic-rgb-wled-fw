@@ -6,14 +6,6 @@
 
 typedef struct 
 {
-  int pinNum;
-  int *checked;
-  
-} Task3Parameters;
-
-
-typedef struct 
-{
   Adafruit_NeoPixel *strip;
   uint16_t len;
   const char *type;
@@ -25,26 +17,25 @@ class LedStrip
     private:
     
       TaskHandle_t Task1;
+      TaskHandle_t Task2; 
       bool ifDelta = false;
       static void PlayingNormalRoutine(void* pvParameters);
-      TaskHandle_t Task2; 
       static void CheckingPinInterrupt(void* pvParameters);
     public:
-      Task3Parameters task3Params;
       String nextAnimationFile = "";
       std::list<ledStripInfo *> stripList;
-      std::list<ledStripInfo *>::iterator it;
+      std::list<ledStripInfo *>::iterator it; //iterator to the list of ledStripInfo
       
-      void HandlingPinInterrupt(Task3Parameters task3Params);
+      void HandlingPinInterrupt(int pinNum);
       void startTasks() 
       {
             xTaskCreatePinnedToCore(PlayingNormalRoutine, "Task1" ,  10000 ,   NULL        ,    1      , &Task1,     1);    
                 //                     func       name    stack    parameters     task          task       core of the task
-              //                                         Size     of the task    pariority     handler
+              //                                          Size     of the task    pariority     handler
             xTaskCreatePinnedToCore(CheckingPinInterrupt, "Task2" ,  10000 ,   NULL        ,    3     , &Task2,     1);
       }
-      int PinGetPullDown();
-      static LedStrip& getInstance();
+      int PinGetPullDown();  // This function checks if the pin gets pull down
+      static LedStrip& getInstance(); 
       void playAnimation(String filename , int pinNum); 
       void parseAndUpdateStrip(String line, std::list<ledStripInfo *> &stripList , int costumDuration);
       void clearingStrips(ledStripInfo *strip);

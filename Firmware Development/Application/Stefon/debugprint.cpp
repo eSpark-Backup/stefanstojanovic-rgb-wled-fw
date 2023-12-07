@@ -6,7 +6,7 @@ namespace
 }
 
 DebugPrint& DebugPrint::getInstance() 
-{
+{   
     if(nullptr == debugPrintInstance)
     {
         debugPrintInstance = new DebugPrint();

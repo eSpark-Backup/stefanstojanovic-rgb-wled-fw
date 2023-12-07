@@ -3,10 +3,11 @@
 #include <SPIFFS.h>
 #include <Adafruit_NeoPixel.h>
 #include <list>
-
+#include <mutex>
 
 class DebugPrint
-{  
+{  private:
+ 
    public:
     uint8_t debugValue = 0;
     static DebugPrint& getInstance();  // Singleton accessor
