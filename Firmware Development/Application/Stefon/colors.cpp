@@ -5,19 +5,20 @@
 
 static DebugPrint& debugPrint = DebugPrint::getInstance();
 static Parsing& parsing = Parsing::getInstance();
-namespace 
-{
-    Colors* colorsInstance = nullptr;
-}
+// namespace 
+// {
+//     Colors* colorsInstance = nullptr;
+// }
 
-Colors& Colors::getInstance() 
-{
-    if(nullptr == colorsInstance)
-    {
-       colorsInstance = new Colors();
-    }
-    return *colorsInstance;
-}
+// Colors& Colors::getInstance() 
+// {
+//     if(nullptr == colorsInstance)
+//     {
+//        colorsInstance = new Colors();
+//     }
+//     return *colorsInstance;
+// }
+Colors Colors::colors;
 void Colors::ifWhite(struct ColorInstance &colorinst, int i)
 {
   if(colorinst.colorArray[i].r == 0 && colorinst.colorArray[i].g == 0 && colorinst.colorArray[i].b == 0 && colorinst.colorArray[i].w)

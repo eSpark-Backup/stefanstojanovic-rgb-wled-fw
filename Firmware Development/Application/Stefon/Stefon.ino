@@ -6,13 +6,11 @@
 #include "colors.hpp"
 #include "debugprint.hpp"
 #include "ledstrip.hpp"
+#define COLORS_PRINT
 
-
-static DebugPrint& debugPrint = DebugPrint::getInstance();
 static Colors& colors = Colors::getInstance();
 static LedStrip& ledStrip = LedStrip::getInstance();
 static Parsing& parsing = Parsing::getInstance();
-
 
 void setup() 
 { 
@@ -23,13 +21,14 @@ void setup()
       parsing.parseAndPrintConfig("/colortable.conf");
       File configFile = SPIFFS.open("/config.conf", "r");
       parsing.parseSection("", configFile, ledStrip.stripList);  // Pass an empty section name to state
-
+      #ifndef COLORS_PRINT
       // printing in order to check whether the colors have been parsed or not
-      // for (int i = 0; i<lineCounter ; i++)
-      // {
-      // printf("symbol %c color combination %d, %d, %d, %d\n " , colorInstance.colorArray[i].symbol , colorInstance.colorArray[i].r , colorInstance.colorArray[i].g , colorInstance.colorArray[i].b , colorInstance.colorArray[i].w);
-      // }
-       ledStrip.startTasks();
+      for (int i = 0; i<colors.lineCounter ; i++)
+      {
+          printf("symbol %c color combination %d, %d, %d, %d\n " , colors.colorInstance.colorArray[i].symbol , colors.colorInstance.colorArray[i].r , colors.colorInstance.colorArray[i].g , colors.colorInstance.colorArray[i].b , colors.colorInstance.colorArray[i].w);
+      }
+      #endif
+      ledStrip.startTasks();
 }
 
 void loop() 

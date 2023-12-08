@@ -19,12 +19,17 @@ struct ColorInstance{
 class Colors
 {  
    private:
-      
+      Colors(){}
+      static Colors colors;
    public:
       int lineCounter = 0;
       ColorConfig config;
       ColorInstance colorInstance;
-      static Colors& getInstance();
+      Colors(const Colors&) = delete;
+      static Colors& getInstance()
+      {
+          return colors;
+      }
       void ifWhite(struct ColorInstance &colorinst, int i);
       void setPixelColorFromCode(int index, char code, struct ColorInstance &colorinst, ledStripInfo *strip, String line);
       void storeColorConfig(struct ColorInstance &colorInst , ColorConfig config);
