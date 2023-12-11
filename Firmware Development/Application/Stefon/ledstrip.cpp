@@ -193,7 +193,6 @@ void LedStrip::playAnimation(String filename , int pinNum)
             else 
             {  
                 parseAndUpdateStrip(line, stripList , 0);
-                delay(100);
             }
       }
       file.close();
