@@ -25,7 +25,7 @@ LedStrip& LedStrip::getInstance()
 static LedStrip& ledStrip = LedStrip::getInstance();
 int LedStrip::PinGetPullDown()
 { 
-  for (std::list<int>::iterator it = parsing.pinsList.begin(); !(it == parsing.pinsList.end()); ++it)
+  for (std::list<int>::iterator it = parsing.pinConfig.inputList.begin(); !(it == parsing.pinConfig.inputList.end()); ++it)
   { 
     int readPinValueReturn = digitalRead(*it);
     if(0 == readPinValueReturn)
@@ -172,7 +172,70 @@ void LedStrip::playAnimation(String filename , int pinNum)
                 int pauseDuration = line.substring(6).toInt();
                 delay(pauseDuration);
                 continue;
-            } 
+            }
+            else if (line.indexOf("PIN") != -1)
+            {
+              int dividerPos = line.indexOf('|');
+              int delayDuration = 0;
+              String command;
+
+              if (dividerPos != -1) {
+                  delayDuration = line.substring(0, dividerPos).toInt();
+                  command = line.substring(dividerPos + 1);
+              } else {
+                  command = line;
+              }
+              command.trim();
+
+              if (command.startsWith("PIN")) {
+                  int pin = -1;
+                  String state;
+
+                  // Extract pin and state from the command
+                  int space1 = command.indexOf(' ', 3);  // Find the first space after "PIN"
+                  int space2 = command.indexOf(' ', space1 + 1);
+
+                  if (space1 != -1 && space2 != -1) {
+                      pin = command.substring(space1 + 1, space2).toInt();
+                      state = command.substring(space2 + 1);
+                  }
+                  bool pinFound = false;
+                  for (int availablePin : parsing.pinConfig.outputList)
+                  { 
+                    if(pin == availablePin)
+                    {
+                      pinFound = true;
+                      // Serial.println("Pin found in the list");
+                      break;
+                    }
+                  }
+                  // Handle the pin and state
+                  if(pinFound)
+                  {
+                    if (pin != -1) {
+                        if (state == "HIGH") {                         
+                            // Serial.println("State Chanaged to HIGH");                 
+                            pinMode(pin, OUTPUT);
+                            digitalWrite(pin, HIGH);
+                        } else if (state == "LOW") {           
+                            // Serial.println("State Chanaged to LOW");                 
+                            pinMode(pin, OUTPUT);
+                            digitalWrite(pin, LOW);
+                        }
+                    }
+                  }
+                  else
+                  {
+                    Serial.print("Pin is not Configured in config.conf file :");
+                    Serial.println(pin);
+                  }
+                  
+                  if (delayDuration > 0) {
+                    // Serial.println("requried Delay added");                 
+                    delay(delayDuration);
+                  }
+              }
+            }
             else if (line.indexOf('|') != -1) 
             {     
                 int dividerPos = line.indexOf('|');

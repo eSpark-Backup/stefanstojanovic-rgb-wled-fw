@@ -21,10 +21,15 @@ struct ledStripMap
   uint8_t value;
 };
 
+struct pinConfig_s {
+    std::list<int> inputList;
+    std::list<int> outputList;
+};
+
 class Parsing
 {
   public:
-    std::list<int> pinsList;
+    pinConfig_s pinConfig;
     static Parsing& getInstance();
     void parseAndPrintConfig(const char *filePath) ;
     void parseSection(String sectionName, File configFile, std::list<ledStripInfo *> &stripList);

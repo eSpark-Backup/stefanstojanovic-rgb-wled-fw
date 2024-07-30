@@ -156,7 +156,7 @@ void Parsing::parseSection(String sectionName, File configFile, std::list<ledStr
         else if (sectionName == "input") 
         { 
             pinMode(parseCurrent.pin, INPUT_PULLUP);
-            pinsList.push_back(parseCurrent.pin);
+            pinConfig.inputList.push_back(parseCurrent.pin);
         }
         else if (sectionName == "output") 
         {
@@ -171,6 +171,7 @@ void Parsing::parseSection(String sectionName, File configFile, std::list<ledStr
                   pinMode(parseCurrent.pin, OUTPUT);
                   digitalWrite(parseCurrent.pin,LOW);
               }
+            pinConfig.outputList.push_back(parseCurrent.pin);
         }
     }
     else if (sectionName == "debug")
