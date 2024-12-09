@@ -4,11 +4,14 @@
 #include <Adafruit_NeoPixel.h>
 #include <list>
 
-typedef struct 
-{
-  Adafruit_NeoPixel *strip;
-  uint16_t len;
-  const char *type;
+typedef struct {
+    Adafruit_NeoPixel *strip1;
+    Adafruit_NeoPixel *strip2;
+    Adafruit_NeoPixel *readyStrip;  // The strip ready for flushing
+    Adafruit_NeoPixel *activeStrip; // The strip being actively parsed
+    uint16_t len;
+    const char *type;
+    int user_delay;
 
 } ledStripInfo;
 
@@ -18,22 +21,18 @@ class LedStrip
     
       TaskHandle_t Task1;
       TaskHandle_t Task2; 
+      TaskHandle_t Task3; 
       bool ifDelta = false;
       static void PlayingNormalRoutine(void* pvParameters);
       static void CheckingPinInterrupt(void* pvParameters);
+      static void handleStripShow(void *pvParameters); 
     public:
       String nextAnimationFile = "";
       std::list<ledStripInfo *> stripList;
       std::list<ledStripInfo *>::iterator it; //iterator to the list of ledStripInfo
       
       void HandlingPinInterrupt(int pinNum);
-      void startTasks() 
-      {
-            xTaskCreatePinnedToCore(PlayingNormalRoutine, "Task1" ,  10000 ,   NULL        ,    1      , &Task1,     1);    
-                //                     func       name    stack    parameters     task          task       core of the task
-              //                                          Size     of the task    pariority     handler
-            xTaskCreatePinnedToCore(CheckingPinInterrupt, "Task2" ,  10000 ,   NULL        ,    3     , &Task2,     1);
-      }
+      void startTasks();
       int PinGetPullDown();  // This function checks if the pin gets pull down
       static LedStrip& getInstance(); 
       void playAnimation(String filename , int pinNum); 

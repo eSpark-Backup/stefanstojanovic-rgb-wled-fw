@@ -37,7 +37,7 @@ void Colors::setPixelColorFromCode(int index, char code, struct ColorInstance &c
     if (colorinst.colorArray[i].symbol == code) 
     { 
       ifWhite(colorinst, i);
-      strip->strip->setPixelColor(index, strip->strip->Color(colorinst.colorArray[i].r, colorinst.colorArray[i].g, colorinst.colorArray[i].b, colorinst.colorArray[i].w));
+      strip->activeStrip->setPixelColor(index, strip->activeStrip->Color(colorinst.colorArray[i].r, colorinst.colorArray[i].g, colorinst.colorArray[i].b, colorinst.colorArray[i].w));
     }
   }
 }
