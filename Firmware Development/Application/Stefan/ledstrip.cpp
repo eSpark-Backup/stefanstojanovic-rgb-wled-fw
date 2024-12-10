@@ -2,13 +2,14 @@
 #include "debugprint.hpp"
 #include "colors.hpp"
 #include "parsing.hpp"
-
+#include "benchmark.hpp"
 
 static Parsing& parsing = Parsing::getInstance();
 static DebugPrint& debugPrint = DebugPrint::getInstance();
 static Colors& colors = Colors::getInstance();
 QueueHandle_t ledStripQueue;
 static int frame_delay = 0;
+SemaphoreHandle_t xMutex;
 
 namespace 
 {
@@ -18,12 +19,13 @@ namespace
 
 void LedStrip::startTasks() 
 {
-    ledStripQueue = xQueueCreate(30, sizeof(ledStripInfo *));
-    xTaskCreatePinnedToCore(handleStripShow,      "FlushTask", 4096*10,  NULL        ,     1      , &Task3,    1);
+    ledStripQueue = xQueueCreate(1, sizeof(ledStripInfo *));
+    xMutex = xSemaphoreCreateMutex();
+    xTaskCreatePinnedToCore(handleStripShow,      "FlushTask", 4096*10,  NULL        ,     2      , &Task3,    1);
     xTaskCreatePinnedToCore(PlayingNormalRoutine, "Task1" ,  10000*4 ,   NULL        ,    1      , &Task1,     1);    
         //                     func       name    stack    parameters     task          task       core of the task
         //                                          Size     of the task    pariority     handler
-    xTaskCreatePinnedToCore(CheckingPinInterrupt, "Task2" ,  10000 ,   NULL        ,    3     , &Task2,     1);
+    xTaskCreatePinnedToCore(CheckingPinInterrupt, "Task2" ,  10000 ,   NULL        ,    5     , &Task2,     0);
 
 
 }
@@ -54,7 +56,7 @@ void LedStrip::showingStrips(ledStripInfo *strip)
 { 
   for (std::list<ledStripInfo *>::iterator it = stripList.begin(); it != stripList.end(); it++) 
   {
-    (*it)->activeStrip->show();
+    (*it)->strip->show();
   }
 }
 
@@ -62,8 +64,8 @@ void LedStrip::clearingStrips(ledStripInfo *strip)
 {
     for (it = stripList.begin(); it != stripList.end(); it++) 
     {
-        (*it)->readyStrip->clear();
-        (*it)->readyStrip->show();
+        (*it)->strip->clear();
+        (*it)->strip->show();
     }
 }
 
@@ -108,21 +110,22 @@ void LedStrip::handleStripShow(void *pvParameters)
 {
     ledStripInfo* strip;
     Serial.println("Task created handleStripShow");
-
     while (true) {
         if (xQueueReceive(ledStripQueue, &strip, portMAX_DELAY) == pdPASS) {
-            // for (std::list<ledStripInfo*>::iterator it = stripList.begin(); it != stripList.end(); it++) {
-            //     (*it)->strip->show();
+            // if (xSemaphoreTake(xMutex, pdMS_TO_TICKS(100)) == pdTRUE){
+                int flush_delay = millis();
+                digitalWrite(33, HIGH);
+                ledStrip.showingStrips(strip);
+                digitalWrite(33, LOW);
+                flush_delay = millis() - flush_delay;
+                int final_delay = frame_delay - flush_delay;
+                if(final_delay > 0)
+                {
+                    delay(final_delay);
+                }
+                // xSemaphoreGive(xMutex);
             // }
-            // int flush_delay = millis();
-            ledStrip.showingStrips(strip);
-            // flush_delay = millis() - flush_delay;
-            // int final_delay = frame_delay - flush_delay;
-            // if(final_delay > 0)
-            // {
-            //     delay(final_delay);
-            // }
-        }
+        }        
     }
 }
 
@@ -187,8 +190,8 @@ void LedStrip::playAnimation(String filename , int pinNum)
             if (line.startsWith("L:")) 
             {
                 int numLeds = line.substring(2).toInt();
-                (*it)->readyStrip->updateLength(numLeds);
-                (*it)->readyStrip->show();  // Update the strip length and clear it
+                // (*it)->strip->updateLength(numLeds);
+                // (*it)->strip->show();  // Update the strip length and clear it
                 continue;
             }
 
@@ -277,7 +280,11 @@ void LedStrip::playAnimation(String filename , int pinNum)
                 int dividerPos = line.indexOf('|');
                 int customDuration = line.substring(0, dividerPos).toInt();
                 // int parsing_delay = millis();
+                // int time_to_parse = 0;
+                // MEASURE_TIME(parseAndUpdateStrip(line.substring(dividerPos + 1), stripList , 0 ), time_to_parse);
+                digitalWrite(25, HIGH);
                 parseAndUpdateStrip(line.substring(dividerPos + 1), stripList , 0 );
+                digitalWrite(25, LOW);
                 // parsing_delay = millis() - parsing_delay;
 
                 // int final_delay = customDuration - parsing_delay;
@@ -312,7 +319,10 @@ void LedStrip::playAnimation(String filename , int pinNum)
 
 void LedStrip::parseAndUpdateStrip(String line, std::list<ledStripInfo *> &stripList , int costumDuration) 
 { 
-  
+    // while (xSemaphoreTake(xMutex, pdMS_TO_TICKS(100)) != pdTRUE){
+    //     Serial.println("Parse cannot take mutex");
+    // }
+
   bool stopCommand = false;
   if(line == "STOP")
   {
@@ -397,7 +407,7 @@ void LedStrip::parseAndUpdateStrip(String line, std::list<ledStripInfo *> &strip
 
         if(ifDelta) // Fading logic is implemented in this condition
         { 
-            uint8_t getBrightnessValue = (*it)->readyStrip->getBrightness();
+            uint8_t getBrightnessValue = (*it)->strip->getBrightness();
             float divideRatioValue = 0;
             if(costumDuration)
             { 
@@ -415,10 +425,11 @@ void LedStrip::parseAndUpdateStrip(String line, std::list<ledStripInfo *> &strip
               
                 for (it = stripList.begin(); it != stripList.end(); it++)
                 {
-                    (*it)->readyStrip->setBrightness(i);
+                    (*it)->strip->setBrightness(i);
                 }
                 // showingStrips(*it);
-                if (xQueueSend(ledStripQueue, &stripList, pdMS_TO_TICKS(5)) != pdPASS) {
+                if(xQueueSend(ledStripQueue, &stripList, portMAX_DELAY) != pdPASS) {
+                // if (xQueueSend(ledStripQueue, &stripList, pdMS_TO_TICKS(frame_delay)) != pdPASS) {
                     // Handle the error (e.g., queue was full and timeout expired)
                     Serial.println("Queue send timed out");
                 }
@@ -428,7 +439,7 @@ void LedStrip::parseAndUpdateStrip(String line, std::list<ledStripInfo *> &strip
             ifDelta = false;
             for (it = stripList.begin(); it != stripList.end(); it++)
             {
-                (*it)->readyStrip->setBrightness(getBrightnessValue);
+                (*it)->strip->setBrightness(getBrightnessValue);
             }
             return;
         }
@@ -436,7 +447,7 @@ void LedStrip::parseAndUpdateStrip(String line, std::list<ledStripInfo *> &strip
         {  
             for (std::list<ledStripInfo *>::iterator it = stripList.begin(); it != stripList.end(); it++) 
             {
-                (*it)->readyStrip->clear();
+                (*it)->strip->clear();
             }
         }
         else
@@ -448,15 +459,19 @@ void LedStrip::parseAndUpdateStrip(String line, std::list<ledStripInfo *> &strip
   }
 showStrip:
 //   showingStrips(*it);
-    if(xQueueSend(ledStripQueue, &stripList, portMAX_DELAY) != pdPASS) {
-    // if(xQueueSend(ledStripQueue, &stripList, pdMS_TO_TICKS(12)) != pdPASS) {
-        // Handle the error (e.g., queue was full and timeout expired)
+    // if(xQueueSend(ledStripQueue, &stripList, portMAX_DELAY) != pdPASS) {
+    // int queue_send_time = 0;
+    // MEASURE_TIME(while(xQueueSend(ledStripQueue, &stripList, pdMS_TO_TICKS(frame_delay)) != pdPASS) { Serial.println("Queue send timed out");}, queue_send_time);
+    while(xQueueSend(ledStripQueue, &stripList, pdMS_TO_TICKS(frame_delay)) != pdPASS) 
+    { 
         Serial.println("Queue send timed out");
     }
+    // xSemaphoreGive(xMutex);
+    
 
   if(stopCommand)
   {
       delay(500);
   }
-  it = stripList.begin();
+//   it = stripList.begin();
 }

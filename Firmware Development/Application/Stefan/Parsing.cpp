@@ -147,21 +147,13 @@ void Parsing::parseSection(String sectionName, File configFile, std::list<ledStr
             typeCheck(&combination , stripTypes , getType);
             ledStripInfo* ada = new ledStripInfo;
 
-            ada->strip1 = new Adafruit_NeoPixel(parseCurrent.length, parseCurrent.pin, combination + NEO_KHZ800);
-
-            ada->strip2 = new Adafruit_NeoPixel(parseCurrent.length, parseCurrent.pin, combination + NEO_KHZ800);
+            ada->strip = new Adafruit_NeoPixel(parseCurrent.length, parseCurrent.pin, combination + NEO_KHZ800);
 
             ada->len = parseCurrent.length;
             ada->type = getType;
 
-            ada->strip1->begin();  // Initialize the strip
-            ada->strip1->setBrightness(parseCurrent.brightness);
-
-            ada->strip2->begin();  // Initialize the strip
-            ada->strip2->setBrightness(parseCurrent.brightness);
-
-            ada->readyStrip = ada->strip1;  // Start with strip1 ready
-            ada->activeStrip = ada->strip2; // Start with strip2 for parsing
+            ada->strip->begin();  // Initialize the strip
+            ada->strip->setBrightness(parseCurrent.brightness);
 
             stripList.push_back(ada);
         } 

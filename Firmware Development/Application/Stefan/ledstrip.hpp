@@ -5,10 +5,7 @@
 #include <list>
 
 typedef struct {
-    Adafruit_NeoPixel *strip1;
-    Adafruit_NeoPixel *strip2;
-    Adafruit_NeoPixel *readyStrip;  // The strip ready for flushing
-    Adafruit_NeoPixel *activeStrip; // The strip being actively parsed
+    Adafruit_NeoPixel *strip;  // The strip ready for flushing
     uint16_t len;
     const char *type;
     int user_delay;

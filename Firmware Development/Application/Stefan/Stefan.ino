@@ -16,6 +16,10 @@ void setup()
 { 
       Serial.begin(115200);
       SPIFFS.begin();
+      pinMode(25, OUTPUT);
+      pinMode(33, OUTPUT);
+        digitalWrite(25, LOW);
+        digitalWrite(33, LOW);
       colors.LineCounter("/colortable.conf" , colors.lineCounter);
       colors.colorInstance.colorArray = new ColorConfig[colors.lineCounter];
       parsing.parseAndPrintConfig("/colortable.conf");
